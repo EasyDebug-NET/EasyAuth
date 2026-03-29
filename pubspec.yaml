@@ -1,5 +1,5 @@
 name: easyauth
-description: "A new Flutter project."
+description: "A 2FA Authenticator Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 0.1.0
 
 environment:
   sdk: ^3.11.3
@@ -34,6 +34,26 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  path: ^1.9.0
+
+  # 2FA相关依赖
+  crypto: ^3.0.3
+  base32: ^2.1.1
+  # QR Scan
+  mobile_scanner: ^7.2.0
+  # QR Generate
+  qr: ^3.0.2
+  # 存储
+  sqflite: ^2.4.2
+  flutter_secure_storage: ^10.0.0
+  # 备份
+  path_provider: ^2.1.2
+  archive: ^4.0.9
+  http: ^1.2.1
+  xml: ^6.6.1
+  # AWS Signature V4
+  aws_signature_v4: ^0.6.10
+  aws_common: ^0.7.12
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +65,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  # icon
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -58,9 +80,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/icon/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -87,3 +108,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
