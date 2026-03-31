@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/settings.dart';
 import '../services/settings_service.dart';
+
 import '../utils/style_utils.dart';
+import '../utils/webdav_utils.dart';
+import '../utils/s3_utils.dart';
 
 /// 设置页面
 class SettingsScreen extends StatefulWidget {
@@ -231,10 +234,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  /// 清除远端备份
-  Future<void> _clearRemoteBackup() async {
+  /// 管理远端备份
+  Future<void> _manageRemoteBackup() async {
     if (_config.type == BackupType.off) {
-      // 优化SnackBar样式，使用floating行为提升用户体验
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('请先选择备份类型'),
@@ -254,56 +256,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    final result = await showDialog<bool>(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认清除'),
-        content: const Text('确定要清除远端备份吗？此操作不可恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('确定清除'),
-          ),
-        ],
-      ),
+      isScrollControlled: true,
+      builder: (context) => _RemoteBackupManager(config: _config),
     );
-
-    if (result == true) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        await _backupService.deleteRemoteBackup(_config);
-        if (mounted) {
-          // 优化SnackBar样式，使用floating行为提升用户体验
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('远端备份已清除'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('清除失败: ${e.toString()}'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
   }
 
   @override
@@ -328,50 +285,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildSection('备份设置', [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _showBackupConfigDialog,
-                    style: StyleUtils.primaryButtonStyleLeft(context),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('备份参数配置'),
-                        Text(
-                          _getBackupConfigStatusText(),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.normal,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildSection('备份设置', [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _showBackupConfigDialog,
+                      style: StyleUtils.primaryButtonStyleLeft(context),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('备份参数配置'),
+                          Text(
+                            _getBackupConfigStatusText(),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                if (_config.type != BackupType.off) ...[
-                  _buildButton('备份到远端', _performBackup, primaryColor),
                   const SizedBox(height: 16),
-                  _buildButton('从远端恢复', _restoreBackup, primaryColor),
-                  const SizedBox(height: 16),
-                  _buildButton(
-                    '清除远端备份',
-                    _clearRemoteBackup,
-                    primaryColor,
-                  ),
-                ],
-              ]),
 
-              // const SizedBox(height: 24),
-              // _buildSection('其他设置', [_buildOtherSettingSwitch()]),
+                  if (_config.type != BackupType.off) ...[
+                    _buildButton('备份到远端', _performBackup, primaryColor),
+                    const SizedBox(height: 16),
+                    _buildButton('从远端恢复', _restoreBackup, primaryColor),
+                    const SizedBox(height: 16),
+                    _buildButton(
+                      '管理远端备份',
+                      _manageRemoteBackup,
+                      primaryColor,
+                    ),
+                  ],
+                ]),
+              ),
+              // 添加分割线
+              Divider(color: Colors.grey[200], height: 1),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildSection('其他设置', []),
+              ),
             ],
           ),
         ),
@@ -382,18 +344,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// 构建设置区块
   Widget _buildSection(String title, List<Widget> children) {
     return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[200]!),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey[100]!,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -464,6 +414,377 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
+
+/// 远端备份管理弹出层
+///
+/// 用于展示备份文件列表，支持全选、单选和批量删除操作
+class _RemoteBackupManager extends StatefulWidget {
+  /// 备份配置
+  final BackupConfig config;
+
+  const _RemoteBackupManager({required this.config});
+
+  @override
+  State<_RemoteBackupManager> createState() => _RemoteBackupManagerState();
+}
+
+class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
+  /// 备份配置
+  late BackupConfig _config;
+
+  /// 备份文件列表
+  List<BackupFile> _backupFiles = [];
+
+  /// 是否正在加载
+  bool _isLoading = true;
+
+  /// 是否全选
+  bool _selectAll = false;
+
+  /// 选中的文件列表
+  final _selectedFiles = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _config = widget.config;
+    _loadBackupFiles();
+  }
+
+  /// 加载备份文件列表
+  ///
+  /// 执行步骤：
+  /// 1. 设置加载状态
+  /// 2. 根据备份类型获取文件列表
+  /// 3. 过滤并解析备份文件
+  /// 4. 按时间降序排序
+  /// 5. 更新状态
+  Future<void> _loadBackupFiles() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final backupService = BackupService();
+      List<String> files;
+
+      if (_config.type == BackupType.webdav) {
+        // 构建 WebDAV 目录 URL
+        final listUrl = backupService.buildWebDavDirUrl(
+          _config.webDavConfig.url,
+          _config.webDavConfig.backupDir,
+        );
+        // 获取 WebDAV 文件列表
+        files = await WebDavUtils.listFiles(
+          listUrl,
+          _config.webDavConfig.username,
+          _config.webDavConfig.password,
+        );
+      } else if (_config.type == BackupType.s3) {
+        // 获取 S3 文件列表
+        files = await S3Utils.listFiles(
+          _config.s3Config.endpoint,
+          _config.s3Config.bucketName,
+          _config.s3Config.accessKeyId,
+          _config.s3Config.secretAccessKey,
+        );
+      } else {
+        files = [];
+      }
+
+      // 过滤备份文件并解析时间
+      final backupFiles = files
+          .where((file) => file.startsWith('backup_') && file.endsWith('.zip'))
+          .map((file) {
+        final timestamp = file
+            .replaceAll('backup_', '')
+            .replaceAll('.zip', '');
+        DateTime? dateTime;
+        try {
+          // 解析时间戳格式: YYYYMMDD_HHMMSS
+          if (timestamp.length >= 14 && timestamp.contains('_')) {
+            final parts = timestamp.split('_');
+            if (parts.length == 2) {
+              final date = parts[0];
+              final time = parts[1];
+              if (date.length == 8 && time.length == 6) {
+                dateTime = DateTime(
+                  int.parse(date.substring(0, 4)),
+                  int.parse(date.substring(4, 6)),
+                  int.parse(date.substring(6, 8)),
+                  int.parse(time.substring(0, 2)),
+                  int.parse(time.substring(2, 4)),
+                  int.parse(time.substring(4, 6)),
+                );
+              }
+            }
+          }
+        } catch (e) {
+          dateTime = null;
+        }
+        return BackupFile(name: file, dateTime: dateTime);
+      })
+          .toList();
+
+      // 按时间降序排序
+      backupFiles.sort((a, b) {
+        if (a.dateTime == null) return 1;
+        if (b.dateTime == null) return -1;
+        return b.dateTime!.compareTo(a.dateTime!);
+      });
+
+      setState(() {
+        _backupFiles = backupFiles;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载失败: ${e.toString()}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 切换全选状态
+  void _toggleSelectAll() {
+    setState(() {
+      _selectAll = !_selectAll;
+      if (_selectAll) {
+        _selectedFiles.addAll(_backupFiles.map((file) => file.name));
+      } else {
+        _selectedFiles.clear();
+      }
+    });
+  }
+
+  /// 切换单个文件的选择状态
+  ///
+  /// [fileName] 文件名
+  void _toggleSelect(String fileName) {
+    setState(() {
+      if (_selectedFiles.contains(fileName)) {
+        _selectedFiles.remove(fileName);
+      } else {
+        _selectedFiles.add(fileName);
+      }
+      _selectAll = _selectedFiles.length == _backupFiles.length;
+    });
+  }
+
+  /// 删除选中的备份文件
+  ///
+  /// 执行步骤：
+  /// 1. 显示确认对话框
+  /// 2. 设置加载状态
+  /// 3. 遍历删除选中的文件
+  /// 4. 显示删除结果
+  /// 5. 重新加载文件列表
+  Future<void> _deleteSelected() async {
+    if (_selectedFiles.isEmpty) {
+      return;
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定要删除选中的 ${_selectedFiles.length} 个备份文件吗？此操作不可恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != true) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final backupService = BackupService();
+
+      for (final fileName in _selectedFiles) {
+        if (_config.type == BackupType.webdav) {
+          // 构建 WebDAV 文件 URL
+          final url = backupService.buildWebDavFileUrl(
+            _config.webDavConfig.url,
+            _config.webDavConfig.backupDir,
+            fileName,
+          );
+          // 删除 WebDAV 文件
+          await WebDavUtils.deleteFile(
+            url,
+            _config.webDavConfig.username,
+            _config.webDavConfig.password,
+          );
+        } else if (_config.type == BackupType.s3) {
+          // 删除 S3 文件
+          await S3Utils.deleteFile(
+            _config.s3Config.endpoint,
+            _config.s3Config.bucketName,
+            fileName,
+            _config.s3Config.accessKeyId,
+            _config.s3Config.secretAccessKey,
+          );
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('删除成功'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadBackupFiles();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('删除失败: ${e.toString()}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _selectedFiles.clear();
+        _selectAll = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        color: Colors.white,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '管理远端备份',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          if (_isLoading) ...[
+            const Center(child: CircularProgressIndicator()),
+            const SizedBox(height: 40),
+          ] else if (_backupFiles.isEmpty) ...[
+            const Center(child: Text('没有找到备份文件')),
+            const SizedBox(height: 40),
+          ] else ...[
+            // 全选和删除按钮
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _selectAll,
+                      onChanged: (_) => _toggleSelectAll(),
+                    ),
+                    const Text('全选'),
+                  ],
+                ),
+                ElevatedButton(
+                  onPressed: _selectedFiles.isEmpty ? null : _deleteSelected,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('删除'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 备份文件列表
+            Container(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _backupFiles.length,
+                itemBuilder: (context, index) {
+                  final file = _backupFiles[index];
+                  return CheckboxListTile(
+                    value: _selectedFiles.contains(file.name),
+                    onChanged: (_) => _toggleSelect(file.name),
+                    title: Text(file.name),
+                    subtitle: Text(
+                      file.dateTime != null
+                          ? '${file.dateTime!.year}-${file.dateTime!.month.toString().padLeft(2, '0')}-${file.dateTime!.day.toString().padLeft(2, '0')} ${file.dateTime!.hour.toString().padLeft(2, '0')}:${file.dateTime!.minute.toString().padLeft(2, '0')}:${file.dateTime!.second.toString().padLeft(2, '0')}'
+                          : '未知时间',
+                    ),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  );
+                },
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+/// 备份文件模型
+///
+/// 用于存储备份文件的基本信息，包括文件名和创建时间
+class BackupFile {
+  /// 文件名
+  final String name;
+
+  /// 文件创建时间
+  final DateTime? dateTime;
+
+  /// 创建备份文件实例
+  ///
+  /// [name] 文件名
+  /// [dateTime] 文件创建时间
+  BackupFile({required this.name, this.dateTime});
 }
 
 /// 备份参数配置弹出层

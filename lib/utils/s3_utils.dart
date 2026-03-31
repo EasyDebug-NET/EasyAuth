@@ -274,4 +274,31 @@ class S3Utils {
       throw HttpException('S3 删除失败: HTTP ${response.statusCode}', uri: uri);
     }
   }
+
+  /// 列出文件（与 WebDavUtils 方法名称保持一致）
+  static Future<List<String>> listFiles(
+    String endpoint,
+    String bucketName,
+    String accessKeyId,
+    String secretAccessKey,
+  ) async {
+    return listObjects(endpoint, bucketName, accessKeyId, secretAccessKey);
+  }
+
+  /// 删除文件（与 WebDavUtils 方法名称保持一致）
+  static Future<void> deleteFile(
+    String endpoint,
+    String bucketName,
+    String objectKey,
+    String accessKeyId,
+    String secretAccessKey,
+  ) async {
+    return deleteObject(
+      endpoint,
+      bucketName,
+      objectKey,
+      accessKeyId,
+      secretAccessKey,
+    );
+  }
 }

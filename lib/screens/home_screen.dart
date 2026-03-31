@@ -125,9 +125,9 @@ class _HomeScreenState extends State<HomeScreen>
       // 检查是否需要更新，只有当账户数据真正变化时才更新
       if (_accounts.length != accounts.length ||
           !_accounts.every(
-            (account) => accounts.any(
-              (newAccount) =>
-                  newAccount.id == account.id &&
+                (account) => accounts.any(
+                  (newAccount) =>
+              newAccount.id == account.id &&
                   newAccount.issuer == account.issuer &&
                   newAccount.name == account.name &&
                   newAccount.secret == account.secret &&
@@ -346,6 +346,7 @@ class _HomeScreenState extends State<HomeScreen>
   void didPopNext() {
     // 当从其他页面返回时重新加载数据
     _loadAccounts();
+    _loadBackupConfig();
   }
 
   /// 根据搜索文本过滤账户列表
@@ -356,8 +357,8 @@ class _HomeScreenState extends State<HomeScreen>
       _filteredAccounts = _accounts.where((account) {
         final code = _codes[account.id] ?? '';
         return account.displayName.toLowerCase().contains(
-              _searchText.toLowerCase(),
-            ) ||
+          _searchText.toLowerCase(),
+        ) ||
             code.contains(_searchText);
       }).toList();
     }
@@ -411,150 +412,149 @@ class _HomeScreenState extends State<HomeScreen>
         onRefresh: _loadAccounts,
         child: _accounts.isEmpty
             ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.qr_code_scanner,
-                      size: 64,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '此处似乎尚无任何验证码',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '点击右下角 + 添加动态密码',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              )
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.qr_code_scanner,
+                size: 64,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '此处似乎尚无任何验证码',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '点击右下角 + 添加动态密码',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
+          ),
+        )
             : ListView.builder(
-                itemCount: _filteredAccounts.length,
-                itemBuilder: (context, index) {
-                  final account = _filteredAccounts[index];
-                  final code = _codes[account.id] ?? '';
-                  final remainingSeconds = _remainingSeconds[account.id] ?? 0;
-                  final progress = remainingSeconds / account.period;
-                  final themeColor = Theme.of(context).colorScheme.primary;
+          itemCount: _filteredAccounts.length,
+          itemBuilder: (context, index) {
+            final account = _filteredAccounts[index];
+            final code = _codes[account.id] ?? '';
+            final remainingSeconds = _remainingSeconds[account.id] ?? 0;
+            final progress = remainingSeconds / account.period;
+            final themeColor = Theme.of(context).colorScheme.primary;
 
-                  return Dismissible(
-                    key: Key(account.id.toString()),
-                    direction: DismissDirection.horizontal,
-                    dismissThresholds: const {
-                      DismissDirection.startToEnd: 0.8,
-                      DismissDirection.endToStart: 0.8,
-                    },
-                    confirmDismiss: (direction) async {
-                      if (direction == DismissDirection.startToEnd) {
-                        await _showEditDialog(account);
-                        return false;
-                      } else {
-                        await _showDeleteConfirmDialog(account);
-                        return false;
-                      }
-                    },
-                    background: Container(
-                      color: Colors.blue,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(
-                        Icons.edit,
-                        color: Colors.white,
-                        size: 24,
+            return Dismissible(
+              key: Key(account.id.toString()),
+              direction: DismissDirection.horizontal,
+              dismissThresholds: const {
+                DismissDirection.startToEnd: 0.8,
+                DismissDirection.endToStart: 0.8,
+              },
+              confirmDismiss: (direction) async {
+                if (direction == DismissDirection.startToEnd) {
+                  await _showEditDialog(account);
+                  return false;
+                } else {
+                  await _showDeleteConfirmDialog(account);
+                  return false;
+                }
+              },
+              background: Container(
+                color: Colors.blue,
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.only(left: 20),
+                child: const Icon(
+                  Icons.edit,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              secondaryBackground: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 20),
+                child: const Icon(
+                  Icons.delete,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 8,
                       ),
-                    ),
-                    secondaryBackground: Container(
-                      color: Colors.red,
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
-                      child: const Icon(
-                        Icons.delete,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Colors.grey[200]!,
-                            width: 1,
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            account.name ?? "未命名账户",
+                            style: const TextStyle(fontSize: 16),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
-                        ),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 0,
-                          vertical: 8,
-                        ),
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                          if (account.issuer != null &&
+                              account.issuer!.isNotEmpty)
                             Text(
-                              account.name ?? "未命名账户",
-                              style: const TextStyle(fontSize: 16),
+                              account.issuer!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                             ),
-                            if (account.issuer != null &&
-                                account.issuer!.isNotEmpty)
-                              Text(
-                                account.issuer!,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+                        ],
+                      ),
+                      subtitle: Text(
+                        code,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                          color: themeColor,
+                        ),
+                      ),
+                      trailing: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              value: progress,
+                              strokeWidth: 3,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                progress > 0.3
+                                    ? Colors.green
+                                    : Colors.orange,
                               ),
+                              backgroundColor: Colors.grey[300],
+                            ),
+                            Text(
+                              '${remainingSeconds}s',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: progress > 0.3
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                            ),
                           ],
-                        ),
-                        subtitle: Text(
-                          code,
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2,
-                            color: themeColor,
-                          ),
-                        ),
-                        trailing: SizedBox(
-                          width: 48,
-                          height: 48,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                value: progress,
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  progress > 0.3 ? Colors.green : Colors.orange,
-                                ),
-                                backgroundColor: Colors.grey[300],
-                              ),
-                              Text(
-                                '${remainingSeconds}s',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: progress > 0.3
-                                      ? Colors.green
-                                      : Colors.orange,
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                     ),
-                  );
-                },
+                  ),
+                  const Divider(color: Color(0xFFE0E0E0), height: 1),
+                ],
               ),
+            );
+          },
+        ),
       ),
       floatingActionButton: Material(
         color: Theme.of(context).colorScheme.primary,
@@ -614,9 +614,9 @@ class _HomeScreenState extends State<HomeScreen>
         // 检查是否需要更新，只有当账户数据真正变化时才更新
         if (_accounts.length != accounts.length ||
             !_accounts.every(
-              (account) => accounts.any(
-                (newAccount) =>
-                    newAccount.id == account.id &&
+                  (account) => accounts.any(
+                    (newAccount) =>
+                newAccount.id == account.id &&
                     newAccount.issuer == account.issuer &&
                     newAccount.name == account.name &&
                     newAccount.secret == account.secret &&
@@ -770,32 +770,172 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 处理备份按钮点击
   Future<void> _handleBackupButtonPressed() async {
-    // 跳转到设置页面的备份设置，并等待返回结果
-    final result = await Navigator.pushNamed(context, '/settings');
+    // 检查备份配置
+    if (_backupConfig == null || _backupConfig!.type == BackupType.off) {
+      // 如果备份类型是“关闭”，则跳转到备份设置页面
+      final result = await Navigator.pushNamed(context, '/settings');
 
-    // 处理返回结果，更新云图标状态
-    if (result is Map<String, dynamic>) {
-      final operation = result['operation'] as String;
-      final status = result['status'] as String;
+      // 处理返回结果，更新云图标状态
+      if (result is Map<String, dynamic>) {
+        final operation = result['operation'] as String;
+        final status = result['status'] as String;
 
-      setState(() {
-        if (operation == 'backup') {
-          _isBackupRunning = false;
-          _isUploadIconFilling = false;
-        } else if (operation == 'restore') {
-          _isRestoreRunning = false;
-          _isDownloadIconFilling = false;
-        }
+        setState(() {
+          if (operation == 'backup') {
+            _isBackupRunning = false;
+            _isUploadIconFilling = false;
+          } else if (operation == 'restore') {
+            _isRestoreRunning = false;
+            _isDownloadIconFilling = false;
+          }
 
-        _operationStatus = status == 'success' ? 1 : 2;
-      });
+          _operationStatus = status == 'success' ? 1 : 2;
+        });
 
-      // 3秒后重置状态
-      Future.delayed(Duration(seconds: 3), () {
-        if (mounted) {
+        // 不再重置状态，保持成功/失败状态
+        // Future.delayed(Duration(seconds: 3), () {
+        //   if (mounted) {
+        //     setState(() {
+        //       _operationStatus = 0;
+        //     });
+        //   }
+        // });
+      }
+    } else {
+      // 如果备份类型不是“关闭”，则弹出菜单
+      showMenu(
+        context: context,
+        position: RelativeRect.fromLTRB(350, 80, 0, 0),
+        items: [
+          PopupMenuItem(
+            value: 'backup',
+            child: ListTile(
+              leading: Icon(Icons.cloud_upload),
+              title: Text('备份到远端'),
+            ),
+          ),
+          PopupMenuItem(
+            value: 'restore',
+            child: ListTile(
+              leading: Icon(Icons.cloud_download),
+              title: Text('从远端恢复'),
+            ),
+          ),
+        ],
+      ).then((value) async {
+        if (value == 'backup') {
+          // 备份到远端
           setState(() {
-            _operationStatus = 0;
+            _isBackupRunning = true;
+            _isUploadIconFilling = true;
           });
+
+          try {
+            await _backupService.performBackup(_backupConfig!);
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('备份成功')));
+              setState(() {
+                _operationStatus = 1;
+              });
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('备份失败: $e')));
+              setState(() {
+                _operationStatus = 2;
+              });
+            }
+          } finally {
+            if (mounted) {
+              setState(() {
+                _isBackupRunning = false;
+                _isUploadIconFilling = false;
+              });
+
+              // 不再重置状态，保持成功/失败状态
+              // Future.delayed(Duration(seconds: 3), () {
+              //   if (mounted) {
+              //     setState(() {
+              //       _operationStatus = 0;
+              //     });
+              //   }
+              // });
+            }
+          }
+        } else if (value == 'restore') {
+          // 从远端恢复
+          // 显示确认对话框
+          final result = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('确认恢复'),
+              content: const Text('恢复备份将覆盖当前数据，确定要继续吗？'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('取消'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('确定恢复'),
+                ),
+              ],
+            ),
+          );
+
+          if (result == true) {
+            setState(() {
+              _isRestoreRunning = true;
+              _isDownloadIconFilling = true;
+            });
+
+            try {
+              await _backupService.restoreBackup(_backupConfig!);
+              if (mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('恢复成功')));
+                setState(() {
+                  _operationStatus = 1;
+                });
+                // 重新加载账户
+                await _loadAccounts();
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('恢复失败: $e')));
+                setState(() {
+                  _operationStatus = 2;
+                });
+              }
+            } finally {
+              if (mounted) {
+                setState(() {
+                  _isRestoreRunning = false;
+                  _isDownloadIconFilling = false;
+                });
+
+                // 不再重置状态，保持成功/失败状态
+                // Future.delayed(Duration(seconds: 3), () {
+                //   if (mounted) {
+                //     setState(() {
+                //       _operationStatus = 0;
+                //     });
+                //   }
+                // });
+              }
+            }
+          }
         }
       });
     }

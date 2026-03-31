@@ -8,7 +8,8 @@ import 'screens/import_export_screen.dart';
 import 'screens/settings_screen.dart';
 
 /// 全局路由观察者
-final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
 
 void main() {
   runApp(const MyApp());

@@ -24,11 +24,11 @@ class WebDavUtils {
   /// 5. 发送请求并检查响应状态码
   /// 6. 如果上传失败，抛出异常
   static Future<void> uploadFile(
-      String filePath,
-      String url,
-      String username,
-      String password,
-      ) async {
+    String filePath,
+    String url,
+    String username,
+    String password,
+  ) async {
     final file = File(filePath);
     final fileBytes = await file.readAsBytes();
 
@@ -39,19 +39,19 @@ class WebDavUtils {
 
     final response = await http
         .put(
-      uri,
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Authorization': authHeader,
-      },
-      body: fileBytes,
-    )
+          uri,
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Authorization': authHeader,
+          },
+          body: fileBytes,
+        )
         .timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        throw HttpException('WebDAV 上传超时', uri: uri);
-      },
-    );
+          const Duration(seconds: 30),
+          onTimeout: () {
+            throw HttpException('WebDAV 上传超时', uri: uri);
+          },
+        );
 
     debugPrint('WebDAV 上传响应: statusCode=${response.statusCode}');
 
@@ -78,11 +78,11 @@ class WebDavUtils {
         final streamedResponse = await http.Client()
             .send(mkcolResponse)
             .timeout(
-          const Duration(seconds: 30),
-          onTimeout: () {
-            throw HttpException('WebDAV 创建目录超时', uri: parentUri);
-          },
-        );
+              const Duration(seconds: 30),
+              onTimeout: () {
+                throw HttpException('WebDAV 创建目录超时', uri: parentUri);
+              },
+            );
         final mkcolBody = await streamedResponse.stream.bytesToString();
         debugPrint(
           'WebDAV 创建目录响应: statusCode=${streamedResponse.statusCode}, body=$mkcolBody',
@@ -94,19 +94,19 @@ class WebDavUtils {
           // 重试上传
           final retryResponse = await http
               .put(
-            uri,
-            headers: {
-              'Content-Type': 'application/octet-stream',
-              'Authorization': authHeader,
-            },
-            body: fileBytes,
-          )
+                uri,
+                headers: {
+                  'Content-Type': 'application/octet-stream',
+                  'Authorization': authHeader,
+                },
+                body: fileBytes,
+              )
               .timeout(
-            const Duration(seconds: 30),
-            onTimeout: () {
-              throw HttpException('WebDAV 上传超时', uri: uri);
-            },
-          );
+                const Duration(seconds: 30),
+                onTimeout: () {
+                  throw HttpException('WebDAV 上传超时', uri: uri);
+                },
+              );
           debugPrint('WebDAV 重试上传响应: statusCode=${retryResponse.statusCode}');
           if (retryResponse.statusCode == 201 ||
               retryResponse.statusCode == 204 ||
@@ -142,11 +142,11 @@ class WebDavUtils {
   /// [password] 密码
   /// [savePath] 本地保存路径
   static Future<File> downloadFile(
-      String url,
-      String username,
-      String password,
-      String savePath,
-      ) async {
+    String url,
+    String username,
+    String password,
+    String savePath,
+  ) async {
     final uri = Uri.parse(url);
     debugPrint('WebDAV 下载: url=$url');
     final request = http.Request('GET', uri)
@@ -182,10 +182,10 @@ class WebDavUtils {
   /// [username] 用户名
   /// [password] 密码
   static Future<List<String>> listFiles(
-      String url,
-      String username,
-      String password,
-      ) async {
+    String url,
+    String username,
+    String password,
+  ) async {
     // PROPFIND 需要 URL 以 / 结尾表示目录
     final normalizedUrl = url.endsWith('/') ? url : '$url/';
     final uri = Uri.parse(normalizedUrl);
@@ -279,10 +279,10 @@ class WebDavUtils {
   /// 3. 发送请求并检查响应状态码
   /// 4. 如果删除失败，抛出异常
   static Future<void> deleteFile(
-      String url,
-      String username,
-      String password,
-      ) async {
+    String url,
+    String username,
+    String password,
+  ) async {
     /// 构建 HTTP DELETE 请求
     final uri = Uri.parse(url);
     final request = http.Request('DELETE', uri)

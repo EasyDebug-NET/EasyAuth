@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:archive/archive.dart';
@@ -7,6 +6,7 @@ import '../models/settings.dart';
 import '../models/two_factor_account.dart';
 import '../utils/webdav_utils.dart';
 import '../utils/s3_utils.dart';
+import '../utils/qr_utils.dart';
 import 'storage_service.dart';
 
 /// 备份服务
@@ -39,7 +39,7 @@ class BackupService {
 
     if (config.type == BackupType.webdav) {
       // 使用 WebDAV 工具类
-      final url = _buildWebDavFileUrl(
+      final url = buildWebDavFileUrl(
         config.webDavConfig.url,
         config.webDavConfig.backupDir,
         fileName,
@@ -83,7 +83,7 @@ class BackupService {
 
     if (config.type == BackupType.webdav) {
       // 使用 WebDAV 工具类获取文件列表
-      final listUrl = _buildWebDavDirUrl(
+      final listUrl = buildWebDavDirUrl(
         config.webDavConfig.url,
         config.webDavConfig.backupDir,
       );
@@ -94,17 +94,17 @@ class BackupService {
       );
       // 过滤并排序备份文件
       final backupFiles =
-      files
-          .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
-          .toList()
-        ..sort((a, b) => b.compareTo(a));
+          files
+              .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
 
       if (backupFiles.isEmpty) {
         throw Exception('WebDAV 存储中没有找到备份文件');
       }
       // 下载最新备份
       final latestBackup = backupFiles.first;
-      final url = _buildWebDavFileUrl(
+      final url = buildWebDavFileUrl(
         config.webDavConfig.url,
         config.webDavConfig.backupDir,
         latestBackup,
@@ -125,10 +125,10 @@ class BackupService {
       );
       // 过滤并排序备份文件
       final backupFiles =
-      objects
-          .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
-          .toList()
-        ..sort((a, b) => b.compareTo(a));
+          objects
+              .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
 
       if (backupFiles.isEmpty) {
         throw Exception('S3 存储中没有找到备份文件');
@@ -166,7 +166,7 @@ class BackupService {
     try {
       final typeStr = await _secureStorage.read(key: 'backup_type') ?? 'off';
       final backupType = BackupType.values.firstWhere(
-            (e) => e.toString().split('.').last == typeStr,
+        (e) => e.toString().split('.').last == typeStr,
         orElse: () => BackupType.off,
       );
       final webDavUrl = await _secureStorage.read(key: 'webdav_url') ?? '';
@@ -184,12 +184,6 @@ class BackupService {
       final s3BucketName =
           await _secureStorage.read(key: 's3_bucket_name') ?? '';
       final backupKey = await _secureStorage.read(key: 'backup_key') ?? '';
-      final backupOnOpen =
-          await _secureStorage.read(key: 'backup_on_open') == 'true';
-      final backupOnExit =
-          await _secureStorage.read(key: 'backup_on_exit') == 'true';
-      final backupOnRefresh =
-          await _secureStorage.read(key: 'backup_on_refresh') == 'true';
       return BackupConfig(
         type: backupType,
         webDavConfig: WebDavConfig(
@@ -289,41 +283,49 @@ class BackupService {
   }
 
   /// 生成 otpauth-migration 数据
+  ///
+  /// 复用 qr_utils.dart 中的 generateMigrationData 方法，确保备份文件中的数据
+  /// 与二维码中的数据格式一致，并且更加安全
   Future<String> _generateMigrationData() async {
     final accounts = await _storageService.getAllAccounts();
-    final migrationBuilder = StringBuffer('otpauth-migration://offline?data=');
 
-    // 这里简化实现，实际应该使用 protobuf 编码
-    // 目前使用简单的文本格式，后续可以优化为 protobuf
-    for (final account in accounts) {
-      migrationBuilder.write('otpauth://totp/');
-      if (account.issuer != null && account.issuer!.isNotEmpty) {
-        migrationBuilder.write('${Uri.encodeComponent(account.issuer!)}:');
-      }
-      if (account.name != null && account.name!.isNotEmpty) {
-        migrationBuilder.write(Uri.encodeComponent(account.name!));
-      }
-      migrationBuilder.write('?secret=${Uri.encodeComponent(account.secret)}');
-      if (account.issuer != null && account.issuer!.isNotEmpty) {
-        migrationBuilder.write(
-          '&issuer=${Uri.encodeComponent(account.issuer!)}',
-        );
-      }
-      migrationBuilder.write('&algorithm=${account.algorithm}');
-      migrationBuilder.write('&digits=6');
-      migrationBuilder.write('&period=${account.period}');
-      migrationBuilder.write('\n');
-    }
+    // 转换账户数据格式，使其符合 QrUtils.generateMigrationData 的要求
+    final accountList = accounts
+        .map(
+          (account) => {
+            'secret': account.secret,
+            'name': account.name ?? '',
+            'issuer': account.issuer ?? '',
+            'algorithm': account.algorithm,
+            'digits': 6,
+            'type': 'totp', // 目前只支持 TOTP
+            'period': account.period,
+          },
+        )
+        .toList();
 
-    return migrationBuilder.toString();
+    // 复用 QrUtils 中的 generateMigrationData 方法
+    return QrUtils.generateMigrationData(accountList);
   }
 
   /// 创建备份文件（打包并加密）
+  ///
+  /// [migrationData] 迁移数据（otpauth-migration 格式）
+  /// [tempDir] 临时目录路径
+  /// [backupKey] 备份密钥（用于 ZIP 加密）
+  ///
+  /// 执行步骤：
+  /// 1. 创建 ZIP 存档
+  /// 2. 添加迁移数据文件到存档
+  /// 3. 使用标准 ZIP 加密编码存档
+  /// 4. 写入最终备份文件
+  ///
+  /// 返回创建的备份文件
   Future<File> _createBackupFile(
-      String migrationData,
-      String tempDir,
-      String backupKey,
-      ) async {
+    String migrationData,
+    String tempDir,
+    String backupKey,
+  ) async {
     // 创建 ZIP 存档
     final archive = Archive();
     final fileBytes = migrationData.codeUnits;
@@ -331,34 +333,46 @@ class BackupService {
       ArchiveFile(_migrationDataFileName, fileBytes.length, fileBytes),
     );
 
-    // 编码为 ZIP
-    final zipData = ZipEncoder().encode(archive);
-    // XOR 加密（zipData 为 List<int>，需转为 Uint8List）
-    final encryptedData = _xorEncrypt(Uint8List.fromList(zipData), backupKey);
+    // 编码为加密 ZIP（使用标准 ZIP 加密）
+    // 使用用户提供的备份密钥作为 ZIP 密码
+    final zipEncoder = ZipEncoder(password: backupKey);
+    final zipData = zipEncoder.encode(archive);
 
     // 写入最终备份文件
     final backupFile = File('$tempDir/backup.zip');
-    await backupFile.writeAsBytes(encryptedData);
+    await backupFile.writeAsBytes(zipData);
     return backupFile;
   }
 
   /// 提取迁移数据（解密并解压）
+  ///
+  /// [filePath] 备份文件路径
+  /// [backupKey] 备份密钥（用于 ZIP 解密）
+  ///
+  /// 执行步骤：
+  /// 1. 读取加密文件
+  /// 2. 使用标准 ZIP 解密解压存档
+  /// 3. 找到迁移数据文件
+  /// 4. 读取文件内容
+  ///
+  /// 返回迁移数据（otpauth-migration 格式）
   Future<String> _extractMigrationData(
-      String filePath,
-      String backupKey,
-      ) async {
+    String filePath,
+    String backupKey,
+  ) async {
     // 读取加密文件
     final encryptedData = await File(filePath).readAsBytes();
 
-    // XOR 解密
-    final decryptedData = _xorEncrypt(encryptedData, backupKey);
-
-    // 解压 ZIP
-    final archive = ZipDecoder().decodeBytes(decryptedData);
+    // 解压加密 ZIP
+    // 使用用户提供的备份密钥作为 ZIP 密码
+    final archive = ZipDecoder().decodeBytes(
+      encryptedData,
+      password: backupKey,
+    );
 
     // 找到迁移数据文件
     final migrationFile = archive.files.firstWhere(
-          (file) => file.name == _migrationDataFileName,
+      (file) => file.name == _migrationDataFileName,
       orElse: () => throw Exception('备份文件格式错误'),
     );
 
@@ -373,55 +387,35 @@ class BackupService {
     final db = await _storageService.database;
     await db.delete('two_factor_accounts');
 
-    // 解析迁移数据
-    final lines = migrationData.split('\n');
-    for (final line in lines) {
-      if (line.isEmpty || !line.startsWith('otpauth://')) continue;
+    // 使用 QrUtils.parseMigrationData 解析迁移数据
+    // 复用 qr_utils.dart 中的解析方法，确保与二维码解析逻辑一致
+    final accounts = QrUtils.parseMigrationData(migrationData);
 
-      final uri = Uri.parse(line);
-      final path = uri.path;
-      final query = uri.queryParameters;
+    // 遍历解析出的账户数据，添加到数据库
+    for (final account in accounts) {
+      final secret = account['secret'] as String?;
+      final name = account['name'] as String?;
+      final issuer = account['issuer'] as String?;
+      final algorithm = account['algorithm'] as String? ?? 'SHA1';
+      final period = account['period'] as int? ?? 30;
 
-      // 提取信息
-      final parts = path.split('/');
-      final label = parts.length >= 3 ? parts[2] : '';
-      final issuerAndAccount = label.split(':');
-      String? issuer;
-      String? accountName;
+      if (secret == null || name == null) continue;
 
-      if (issuerAndAccount.length >= 2) {
-        issuer = issuerAndAccount[0];
-        accountName = issuerAndAccount[1];
-      } else if (issuerAndAccount.isNotEmpty) {
-        accountName = issuerAndAccount[0];
-      }
+      // 创建账户
+      final twoFactorAccount = TwoFactorAccount.name(
+        0,
+        // ID 会自动生成
+        issuer,
+        name,
+        secret,
+        period,
+        algorithm,
+        DateTime.now(),
+        DateTime.now(),
+      );
 
-      // 优先使用 query 中的 issuer
-      if (query.containsKey('issuer')) {
-        issuer = query['issuer'];
-      }
-
-      final secret = query['secret'] ?? '';
-      final algorithm = query['algorithm'] ?? 'SHA1';
-      final period = int.tryParse(query['period'] ?? '30') ?? 30;
-
-      if (secret.isNotEmpty) {
-        // 创建账户
-        final account = TwoFactorAccount.name(
-          0,
-          // ID 会自动生成
-          issuer,
-          accountName,
-          secret,
-          period,
-          algorithm,
-          DateTime.now(),
-          DateTime.now(),
-        );
-
-        // 插入数据库
-        await _storageService.insertAccount(account);
-      }
+      // 插入数据库
+      await _storageService.insertAccount(twoFactorAccount);
     }
   }
 
@@ -434,11 +428,13 @@ class BackupService {
   }
 
   /// 构建 WebDAV 文件完整 URL
-  String _buildWebDavFileUrl(
-      String baseUrl,
-      String backupDir,
-      String fileName,
-      ) {
+  ///
+  /// [baseUrl] WebDAV 服务器基础 URL
+  /// [backupDir] 备份目录
+  /// [fileName] 文件名
+  ///
+  /// 返回构建好的文件 URL
+  String buildWebDavFileUrl(String baseUrl, String backupDir, String fileName) {
     String url = baseUrl;
     if (backupDir.isNotEmpty) {
       final dir = backupDir.startsWith('/')
@@ -450,7 +446,12 @@ class BackupService {
   }
 
   /// 构建 WebDAV 目录 URL（用于 PROPFIND 列出文件）
-  String _buildWebDavDirUrl(String baseUrl, String backupDir) {
+  ///
+  /// [baseUrl] WebDAV 服务器基础 URL
+  /// [backupDir] 备份目录
+  ///
+  /// 返回构建好的目录 URL（确保以 / 结尾）
+  String buildWebDavDirUrl(String baseUrl, String backupDir) {
     String url = baseUrl;
     if (backupDir.isNotEmpty) {
       final dir = backupDir.startsWith('/')
@@ -461,18 +462,6 @@ class BackupService {
     return url.endsWith('/') ? url : '$url/';
   }
 
-  /// XOR 加密/解密（对称）
-  Uint8List _xorEncrypt(Uint8List data, String key) {
-    final keyBytes = key.codeUnits;
-    final result = Uint8List(data.length);
-
-    for (int i = 0; i < data.length; i++) {
-      result[i] = data[i] ^ keyBytes[i % keyBytes.length];
-    }
-
-    return result;
-  }
-
   /// 检查远程是否有备份文件
   ///
   /// [config] 备份配置
@@ -481,7 +470,7 @@ class BackupService {
   Future<bool> hasRemoteBackup(BackupConfig config) async {
     if (config.type == BackupType.webdav) {
       /// 使用 WebDAV 工具类获取文件列表
-      final listUrl = _buildWebDavDirUrl(
+      final listUrl = buildWebDavDirUrl(
         config.webDavConfig.url,
         config.webDavConfig.backupDir,
       );
@@ -523,7 +512,7 @@ class BackupService {
   Future<void> deleteRemoteBackup(BackupConfig config) async {
     if (config.type == BackupType.webdav) {
       /// 使用 WebDAV 工具类获取文件列表
-      final listUrl = _buildWebDavDirUrl(
+      final listUrl = buildWebDavDirUrl(
         config.webDavConfig.url,
         config.webDavConfig.backupDir,
       );
@@ -535,14 +524,14 @@ class BackupService {
 
       /// 过滤并排序备份文件
       final backupFiles =
-      files
-          .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
-          .toList()
-        ..sort((a, b) => b.compareTo(a));
+          files
+              .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
 
       /// 删除所有备份文件
       for (final file in backupFiles) {
-        final url = _buildWebDavFileUrl(
+        final url = buildWebDavFileUrl(
           config.webDavConfig.url,
           config.webDavConfig.backupDir,
           file,

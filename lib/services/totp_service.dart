@@ -48,10 +48,10 @@ class TotpService {
     // 动态截取
     final offset = digest.bytes[digest.bytes.length - 1] & 0x0f;
     final binary =
-    ((digest.bytes[offset] & 0x7f) << 24) |
-    ((digest.bytes[offset + 1] & 0xff) << 16) |
-    ((digest.bytes[offset + 2] & 0xff) << 8) |
-    (digest.bytes[offset + 3] & 0xff);
+        ((digest.bytes[offset] & 0x7f) << 24) |
+        ((digest.bytes[offset + 1] & 0xff) << 16) |
+        ((digest.bytes[offset + 2] & 0xff) << 8) |
+        (digest.bytes[offset + 3] & 0xff);
 
     // 计算动态码
     final otp = binary % pow(10, digits).toInt();

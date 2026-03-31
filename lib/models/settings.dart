@@ -150,7 +150,7 @@ class BackupConfig {
   factory BackupConfig.fromJson(Map<String, dynamic> json) {
     return BackupConfig(
       type: BackupType.values.firstWhere(
-            (e) => e.toString().split('.').last == json['type'],
+        (e) => e.toString().split('.').last == json['type'],
         orElse: () => BackupType.off,
       ),
       webDavConfig: WebDavConfig.fromJson(json['webDavConfig'] ?? {}),

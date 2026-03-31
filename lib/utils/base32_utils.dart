@@ -32,7 +32,10 @@ class Base32 {
 
   /// 将base32字符串解码为字节数组
   static Uint8List decode(String input) {
-    final cleanedInput = input.toUpperCase().replaceAll(RegExp(r'[^A-Z2-7]'), '');
+    final cleanedInput = input.toUpperCase().replaceAll(
+      RegExp(r'[^A-Z2-7]'),
+      '',
+    );
     final output = <int>[];
     int bits = 0;
     int value = 0;
