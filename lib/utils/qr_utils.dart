@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'base32_utils.dart';
 
 /// 二维码数据解析与生成工具类

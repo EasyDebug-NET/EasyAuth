@@ -73,10 +73,10 @@ class WebDavUtils {
         final parentUri = uri.replace(path: '/$parentPath');
         debugPrint('WebDAV 尝试创建目录: $parentUri');
 
-        final mkcolResponse = await http.Request('MKCOL', parentUri)
+        final mkcolRequest = http.Request('MKCOL', parentUri)
           ..headers['Authorization'] = authHeader;
         final streamedResponse = await http.Client()
-            .send(mkcolResponse)
+            .send(mkcolRequest)
             .timeout(
               const Duration(seconds: 30),
               onTimeout: () {

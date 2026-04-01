@@ -1,13 +1,17 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../main.dart';
+import '../models/setting.dart';
 import '../models/two_factor_account.dart';
-import '../models/settings.dart';
-import '../services/settings_service.dart';
+import '../services/backup_service.dart';
+import '../services/security_service.dart';
 import '../services/storage_service.dart';
 import '../services/totp_service.dart';
+import '../utils/exceptions.dart';
 import '../utils/style_utils.dart';
 
 /// 主页面
@@ -26,8 +30,14 @@ class _HomeScreenState extends State<HomeScreen>
   /// 备份服务
   final BackupService _backupService = BackupService();
 
-  /// 备份配置
-  BackupConfig? _backupConfig;
+  /// 安全服务
+  final SecurityService _securityService = SecurityService();
+
+  /// 是否需要显示认证界面
+  bool _needsAuthentication = false;
+
+  /// 应用设置
+  Setting? _setting;
 
   /// 所有账户列表
   List<TwoFactorAccount> _accounts = [];
@@ -101,33 +111,86 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  /// 初始化方法，按照顺序加载数据和备份配置
-  /// 1. 先从本地数据库加载账户数据
-  /// 2. 加载备份配置
+  /// 初始化方法，按照顺序加载数据和设置配置
+  /// 1. 先加载设置配置（包含安全设置）
+  /// 2. 检查安全锁设置，需要时进行认证
+  /// 3. 从本地数据库加载账户数据
   Future<void> _initialize() async {
-    // 移到后台执行，避免阻塞主线程
-    await Future.microtask(() async {
-      /// 先从本地数据库加载账户数据
-      await _loadLocalAccounts();
+    try {
+      /// 先加载设置配置（包含安全设置）
+      await _loadSettingsConfig();
 
-      /// 加载备份配置
-      await _loadBackupConfig();
-    });
+      /// 检查安全锁设置
+      await _checkSecurityLock();
+
+      /// 从本地数据库加载账户数据
+      await _loadLocalAccounts();
+    } catch (e) {
+      debugPrint('初始化失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('初始化失败: ${e.toString()}'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 检查安全锁设置
+  Future<void> _checkSecurityLock() async {
+    // 确保应用设置已加载
+    if (_setting == null) {
+      return;
+    }
+
+    // 检查是否需要认证
+    if (_securityService.needsAuthentication(
+      _setting!.securitySetting.appLockEnabled == 1,
+    )) {
+      // 需要进行生物识别认证
+      setState(() {
+        _needsAuthentication = true;
+      });
+
+      bool authenticated = await _securityService.authenticate(
+        reason: '请验证身份以访问应用',
+      );
+
+      if (!authenticated) {
+        // 认证失败，退出应用
+        Future.delayed(Duration(milliseconds: 500), () {
+          if (mounted) {
+            // 使用 SystemNavigator.pop() 退出应用，避免闪退
+            if (Platform.isAndroid) {
+              SystemNavigator.pop();
+            } else if (Platform.isIOS) {
+              exit(0);
+            }
+          }
+        });
+      } else {
+        // 认证成功，继续加载数据
+        setState(() {
+          _needsAuthentication = false;
+        });
+      }
+    }
   }
 
   /// 从本地数据库加载账户数据
   Future<void> _loadLocalAccounts() async {
     try {
-      final accounts = await Future.microtask(() async {
-        return await _storageService.getAllAccounts();
-      });
+      final accounts = await _storageService.getAllAccounts();
 
       // 检查是否需要更新，只有当账户数据真正变化时才更新
       if (_accounts.length != accounts.length ||
           !_accounts.every(
-                (account) => accounts.any(
-                  (newAccount) =>
-              newAccount.id == account.id &&
+            (account) => accounts.any(
+              (newAccount) =>
+                  newAccount.id == account.id &&
                   newAccount.issuer == account.issuer &&
                   newAccount.name == account.name &&
                   newAccount.secret == account.secret &&
@@ -155,162 +218,9 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// 检查远程备份
-  Future<void> _checkRemoteBackup() async {
-    try {
-      if (_backupConfig != null &&
-          _backupService.isConfigValid(_backupConfig!)) {
-        // 在后台线程检查远程是否有备份文件
-        bool hasRemoteBackup = await Future.microtask(() async {
-          return await _backupService.hasRemoteBackup(_backupConfig!);
-        });
-
-        if (hasRemoteBackup) {
-          debugPrint('远程有备份文件');
-
-          // 如果本地没有数据但远程有数据，询问用户是否删除远程备份文件
-          if (_accounts.isEmpty) {
-            if (mounted) {
-              showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text('删除远程备份'),
-                  content: Text('本地没有数据，但远程存储中有备份文件。是否删除远程备份文件？'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text('取消'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text('删除'),
-                    ),
-                  ],
-                ),
-              ).then((result) async {
-                if (result == true) {
-                  try {
-                    // 在后台线程执行删除操作
-                    await Future.microtask(() async {
-                      return await _backupService.deleteRemoteBackup(
-                        _backupConfig!,
-                      );
-                    });
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('远程备份已删除'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('删除远程备份失败: ${e.toString()}'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  }
-                }
-              });
-            }
-          } else {
-            // 本地有数据，询问用户是否恢复备份
-            if (mounted) {
-              showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text('恢复备份'),
-                  content: Text('检测到远程有备份文件，是否恢复？恢复将覆盖当前数据。'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text('取消'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text('恢复'),
-                    ),
-                  ],
-                ),
-              ).then((result) async {
-                if (result == true) {
-                  await _restoreFromRemoteBackup();
-                }
-              });
-            }
-          }
-        } else {
-          debugPrint('远程没有备份文件');
-        }
-      }
-    } catch (e) {
-      debugPrint('检查远程备份失败: $e');
-    }
-  }
-
-  /// 从远程备份恢复数据
-  Future<void> _restoreFromRemoteBackup() async {
-    if (_backupConfig == null ||
-        !_backupService.isConfigValid(_backupConfig!)) {
-      return;
-    }
-
-    setState(() {
-      _isRestoreRunning = true;
-      _operationStatus = 0; // 重置操作结果状态
-    });
-
-    // 启动图标闪烁
-    _startIconBlinkTimer();
-
-    try {
-      // 在后台线程执行恢复操作
-      await Future.microtask(() async {
-        return await _backupService.restoreBackup(_backupConfig!);
-      });
-      if (mounted) {
-        // 重新加载本地数据
-        await _loadLocalAccounts();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('恢复完成'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      // 操作成功
-      setState(() {
-        _operationStatus = 1;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('恢复失败: ${e.toString()}'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      // 操作失败
-      setState(() {
-        _operationStatus = 2;
-      });
-    } finally {
-      setState(() {
-        _isRestoreRunning = false;
-      });
-      // 停止图标闪烁
-      _stopIconBlinkTimer();
-    }
-  }
-
-  /// 加载备份配置
-  Future<void> _loadBackupConfig() async {
-    _backupConfig = await _backupService.loadConfig();
+  /// 加载设置配置
+  Future<void> _loadSettingsConfig() async {
+    _setting = await _backupService.loadConfig();
   }
 
   @override
@@ -329,10 +239,33 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      // 当应用从后台回到前台时重新加载数据
-      _loadAccounts();
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // 当应用切换到后台或失去焦点时，重置认证状态
+        // 这样下次回到前台时需要重新认证
+        _securityService.resetAuthentication();
+        debugPrint('应用切换到后台，认证状态已重置');
+        break;
+      case AppLifecycleState.resumed:
+        // 当应用从后台回到前台时重新加载数据和检查安全设置
+        _handleAppResumed();
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        // 应用被销毁或隐藏，不需要特殊处理
+        break;
     }
+  }
+
+  /// 处理应用从后台回到前台的逻辑
+  Future<void> _handleAppResumed() async {
+    // 先加载设置配置
+    await _loadSettingsConfig();
+    // 再检查安全锁
+    await _checkSecurityLock();
+    // 最后加载账户数据
+    _loadAccounts();
   }
 
   @override
@@ -346,7 +279,9 @@ class _HomeScreenState extends State<HomeScreen>
   void didPopNext() {
     // 当从其他页面返回时重新加载数据
     _loadAccounts();
-    _loadBackupConfig();
+    _loadSettingsConfig();
+    // 从设置页面返回时，如果应用锁已开启且已认证，则不重复认证
+    // 这里不需要额外的认证检查，因为_checkSecurityLock方法会处理
   }
 
   /// 根据搜索文本过滤账户列表
@@ -357,8 +292,8 @@ class _HomeScreenState extends State<HomeScreen>
       _filteredAccounts = _accounts.where((account) {
         final code = _codes[account.id] ?? '';
         return account.displayName.toLowerCase().contains(
-          _searchText.toLowerCase(),
-        ) ||
+              _searchText.toLowerCase(),
+            ) ||
             code.contains(_searchText);
       }).toList();
     }
@@ -366,6 +301,28 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // 认证过程中显示加载界面
+    if (_needsAuthentication) {
+      final themeColor = Theme.of(context).colorScheme.primary;
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(themeColor),
+              ),
+              const SizedBox(height: 16),
+              const Text('正在验证身份...'),
+              const SizedBox(height: 8),
+              const Text('请验证您的生物识别信息', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -412,149 +369,149 @@ class _HomeScreenState extends State<HomeScreen>
         onRefresh: _loadAccounts,
         child: _accounts.isEmpty
             ? Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.qr_code_scanner,
-                size: 64,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                '此处似乎尚无任何验证码',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '点击右下角 + 添加动态密码',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-            ],
-          ),
-        )
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.qr_code_scanner,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '此处似乎尚无任何验证码',
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '点击右下角 + 添加动态密码',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              )
             : ListView.builder(
-          itemCount: _filteredAccounts.length,
-          itemBuilder: (context, index) {
-            final account = _filteredAccounts[index];
-            final code = _codes[account.id] ?? '';
-            final remainingSeconds = _remainingSeconds[account.id] ?? 0;
-            final progress = remainingSeconds / account.period;
-            final themeColor = Theme.of(context).colorScheme.primary;
+                itemCount: _filteredAccounts.length,
+                itemBuilder: (context, index) {
+                  final account = _filteredAccounts[index];
+                  final code = _codes[account.id] ?? '';
+                  final remainingSeconds = _remainingSeconds[account.id] ?? 0;
+                  final progress = remainingSeconds / account.period;
+                  final themeColor = Theme.of(context).colorScheme.primary;
 
-            return Dismissible(
-              key: Key(account.id.toString()),
-              direction: DismissDirection.horizontal,
-              dismissThresholds: const {
-                DismissDirection.startToEnd: 0.8,
-                DismissDirection.endToStart: 0.8,
-              },
-              confirmDismiss: (direction) async {
-                if (direction == DismissDirection.startToEnd) {
-                  await _showEditDialog(account);
-                  return false;
-                } else {
-                  await _showDeleteConfirmDialog(account);
-                  return false;
-                }
-              },
-              background: Container(
-                color: Colors.blue,
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.only(left: 20),
-                child: const Icon(
-                  Icons.edit,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              secondaryBackground: Container(
-                color: Colors.red,
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                child: const Icon(
-                  Icons.delete,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 0,
-                        vertical: 8,
-                      ),
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            account.name ?? "未命名账户",
-                            style: const TextStyle(fontSize: 16),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                          if (account.issuer != null &&
-                              account.issuer!.isNotEmpty)
-                            Text(
-                              account.issuer!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                        ],
-                      ),
-                      subtitle: Text(
-                        code,
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                          color: themeColor,
-                        ),
-                      ),
-                      trailing: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            CircularProgressIndicator(
-                              value: progress,
-                              strokeWidth: 3,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                progress > 0.3
-                                    ? Colors.green
-                                    : Colors.orange,
-                              ),
-                              backgroundColor: Colors.grey[300],
-                            ),
-                            Text(
-                              '${remainingSeconds}s',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: progress > 0.3
-                                    ? Colors.green
-                                    : Colors.orange,
-                              ),
-                            ),
-                          ],
-                        ),
+                  return Dismissible(
+                    key: Key(account.id.toString()),
+                    direction: DismissDirection.horizontal,
+                    dismissThresholds: const {
+                      DismissDirection.startToEnd: 0.8,
+                      DismissDirection.endToStart: 0.8,
+                    },
+                    confirmDismiss: (direction) async {
+                      if (direction == DismissDirection.startToEnd) {
+                        await _showEditDialog(account);
+                        return false;
+                      } else {
+                        await _showDeleteConfirmDialog(account);
+                        return false;
+                      }
+                    },
+                    background: Container(
+                      color: Colors.blue,
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(left: 20),
+                      child: const Icon(
+                        Icons.edit,
+                        color: Colors.white,
+                        size: 24,
                       ),
                     ),
-                  ),
-                  const Divider(color: Color(0xFFE0E0E0), height: 1),
-                ],
+                    secondaryBackground: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      child: const Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 0,
+                              vertical: 8,
+                            ),
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  account.name ?? "未命名账户",
+                                  style: const TextStyle(fontSize: 16),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                                if (account.issuer != null &&
+                                    account.issuer!.isNotEmpty)
+                                  Text(
+                                    account.issuer!,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              code,
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                                color: themeColor,
+                              ),
+                            ),
+                            trailing: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                    value: progress,
+                                    strokeWidth: 3,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      progress > 0.3
+                                          ? Colors.green
+                                          : Colors.orange,
+                                    ),
+                                    backgroundColor: Colors.grey[300],
+                                  ),
+                                  Text(
+                                    '${remainingSeconds}s',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: progress > 0.3
+                                          ? Colors.green
+                                          : Colors.orange,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Divider(color: Color(0xFFE0E0E0), height: 1),
+                      ],
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
       floatingActionButton: Material(
         color: Theme.of(context).colorScheme.primary,
@@ -606,17 +563,15 @@ class _HomeScreenState extends State<HomeScreen>
 
     _loadAccountsDebounceTimer = Timer(Duration(milliseconds: 50), () async {
       try {
-        // 在后台线程获取账户数据
-        final accounts = await Future.microtask(() async {
-          return await _storageService.getAllAccounts();
-        });
+        // 获取账户数据
+        final accounts = await _storageService.getAllAccounts();
 
         // 检查是否需要更新，只有当账户数据真正变化时才更新
         if (_accounts.length != accounts.length ||
             !_accounts.every(
-                  (account) => accounts.any(
-                    (newAccount) =>
-                newAccount.id == account.id &&
+              (account) => accounts.any(
+                (newAccount) =>
+                    newAccount.id == account.id &&
                     newAccount.issuer == account.issuer &&
                     newAccount.name == account.name &&
                     newAccount.secret == account.secret &&
@@ -649,32 +604,6 @@ class _HomeScreenState extends State<HomeScreen>
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _updateCodes();
-    });
-  }
-
-  /// 启动图标闪烁定时器
-  void _startIconBlinkTimer() {
-    // 取消之前的定时器
-    _iconBlinkTimer?.cancel();
-
-    // 每1秒闪烁一次
-    _iconBlinkTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_isBackupRunning) {
-          _isUploadIconFilling = !_isUploadIconFilling;
-        } else if (_isRestoreRunning) {
-          _isDownloadIconFilling = !_isDownloadIconFilling;
-        }
-      });
-    });
-  }
-
-  /// 停止图标闪烁定时器
-  void _stopIconBlinkTimer() {
-    _iconBlinkTimer?.cancel();
-    setState(() {
-      _isUploadIconFilling = false;
-      _isDownloadIconFilling = false;
     });
   }
 
@@ -771,9 +700,13 @@ class _HomeScreenState extends State<HomeScreen>
   /// 处理备份按钮点击
   Future<void> _handleBackupButtonPressed() async {
     // 检查备份配置
-    if (_backupConfig == null || _backupConfig!.type == BackupType.off) {
+    if (_setting == null || _setting!.backupSetting.type == BackupType.off) {
       // 如果备份类型是“关闭”，则跳转到备份设置页面
-      final result = await Navigator.pushNamed(context, '/settings');
+      final result = await Navigator.pushNamed(
+        context,
+        '/settings',
+        arguments: {'fromCloudIcon': true},
+      );
 
       // 处理返回结果，更新云图标状态
       if (result is Map<String, dynamic>) {
@@ -823,6 +756,8 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ).then((value) async {
+        if (!mounted) return;
+
         if (value == 'backup') {
           // 备份到远端
           setState(() {
@@ -831,7 +766,7 @@ class _HomeScreenState extends State<HomeScreen>
           });
 
           try {
-            await _backupService.performBackup(_backupConfig!);
+            await _backupService.performBackup(_setting!);
             if (mounted) {
               ScaffoldMessenger.of(
                 context,
@@ -891,14 +826,14 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           );
 
-          if (result == true) {
+          if (result == true && mounted) {
             setState(() {
               _isRestoreRunning = true;
               _isDownloadIconFilling = true;
             });
 
             try {
-              await _backupService.restoreBackup(_backupConfig!);
+              await _backupService.restoreBackup(_setting!);
               if (mounted) {
                 ScaffoldMessenger.of(
                   context,
@@ -911,9 +846,36 @@ class _HomeScreenState extends State<HomeScreen>
               }
             } catch (e) {
               if (mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('恢复失败: $e')));
+                String errorMessage = '恢复失败';
+                String? errorDetails;
+
+                if (e is AppException) {
+                  errorMessage = e.message;
+                  errorDetails = e.details;
+                } else {
+                  errorMessage = '恢复失败: ${e.toString()}';
+                }
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(errorMessage),
+                        if (errorDetails != null)
+                          Text(
+                            errorDetails,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white70,
+                            ),
+                          ),
+                      ],
+                    ),
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
                 setState(() {
                   _operationStatus = 2;
                 });
@@ -996,6 +958,14 @@ class _MenuDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/settings');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text('关于'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/about');
             },
           ),
         ],

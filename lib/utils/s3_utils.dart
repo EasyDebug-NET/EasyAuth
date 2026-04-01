@@ -35,7 +35,7 @@ class S3Utils {
     final file = File(filePath);
     final fileBytes = await file.readAsBytes();
 
-    final uri = Uri.parse('$endpoint/$bucketName/$objectKey');
+    final uri = Uri.parse('$endpoint/$objectKey');
 
     // 构建 AWS 签名
     final credentials = AWSCredentials(accessKeyId, secretAccessKey);
@@ -96,7 +96,7 @@ class S3Utils {
     String secretAccessKey,
     String savePath,
   ) async {
-    final uri = Uri.parse('$endpoint/$bucketName/$objectKey');
+    final uri = Uri.parse('$endpoint/$objectKey');
 
     // 构建 AWS 签名
     final credentials = AWSCredentials(accessKeyId, secretAccessKey);
@@ -235,7 +235,7 @@ class S3Utils {
     String secretAccessKey,
   ) async {
     /// 构建请求 URI
-    final uri = Uri.parse('$endpoint/$bucketName/$objectKey');
+    final uri = Uri.parse('$endpoint/$objectKey');
 
     /// 构建 AWS 签名
     final credentials = AWSCredentials(accessKeyId, secretAccessKey);

@@ -66,5 +66,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- 生物识别权限描述 -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>EasyAuth需要使用Face ID或Touch ID来保护您的2FA验证码安全</string>
 </dict>
 </plist>

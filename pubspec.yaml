@@ -51,9 +51,14 @@ dependencies:
   archive: ^4.0.9
   http: ^1.2.1
   xml: ^6.6.1
-  # AWS Signature V4
   aws_signature_v4: ^0.6.10
   aws_common: ^0.7.12
+  # 生物识别认证
+  local_auth: ^3.0.1
+  # 防止截屏
+  flutter_windowmanager_plus: ^1.0.1
+  # 打开链接
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

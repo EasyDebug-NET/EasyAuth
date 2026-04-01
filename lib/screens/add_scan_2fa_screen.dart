@@ -142,13 +142,29 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
   /// 处理扫描到的数据
   Future<void> _processScannedData(String data) async {
     try {
+      // 验证二维码格式
+      if (!data.startsWith('otpauth://')) {
+        throw FormatException('二维码格式错误，必须是 otpauth:// 格式的URI');
+      }
+
       final params = TotpService.parseOtpAuthUri(data);
+
+      // 验证必要参数
+      final secret = params['secret'] as String;
+      if (secret.isEmpty) {
+        throw FormatException('二维码缺少必要的密钥信息（secret）');
+      }
+
+      // 验证密钥格式（Base32）
+      if (!_isValidBase32(secret)) {
+        throw FormatException('密钥格式无效，必须是Base32编码');
+      }
 
       final account = TwoFactorAccount.name(
         0,
         params['issuer'] as String?,
         params['name'] as String?,
-        params['secret'] as String,
+        secret,
         params['period'] as int,
         params['algorithm'] as String,
         DateTime.now(),
@@ -167,35 +183,55 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
           ),
         );
       }
+    } on FormatException catch (e) {
+      // 格式错误，显示详细的错误信息
+      _showErrorDialog('二维码格式错误', e.message);
     } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('扫描失败'),
-              content: const Text('无效的二维码格式'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _controller.start();
-                    _isScanning = true;
-                  },
-                  child: const Text('重试'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('取消'),
-                ),
-              ],
-            );
-          },
-        );
+      // 其他错误
+      String errorMessage = '无法识别此二维码';
+      if (e.toString().contains('Only TOTP is supported')) {
+        errorMessage = '仅支持TOTP类型的验证码，不支持HOTP';
       }
+      _showErrorDialog('扫描失败', errorMessage);
     }
+  }
+
+  /// 验证字符串是否为有效的Base32编码
+  bool _isValidBase32(String input) {
+    // Base32字符集：A-Z, 2-7
+    final base32Regex = RegExp(r'^[A-Z2-7]+=*$');
+    return base32Regex.hasMatch(input.toUpperCase());
+  }
+
+  /// 显示错误对话框
+  void _showErrorDialog(String title, String message) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _controller.start();
+                _isScanning = true;
+              },
+              child: const Text('重试'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

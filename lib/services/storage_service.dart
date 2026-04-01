@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
 import '../models/two_factor_account.dart';
 
 /// 数据库存储服务 - 单例模式

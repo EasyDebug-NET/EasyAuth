@@ -12,7 +12,7 @@ class WebDavConfig {
   /// 授权用户名
   final String username;
 
-  /// 授权密码（同时作为备份加密秘钥）
+  /// 授权密码
   final String password;
 
   const WebDavConfig({
@@ -60,23 +60,27 @@ class WebDavConfig {
 
 /// S3 备份配置
 class S3Config {
-  /// S3 服务端点地址
+  /// S3 服务端点
   final String endpoint;
 
   /// 访问密钥 ID
   final String accessKeyId;
 
-  /// 秘密访问密钥（同时作为备份加密秘钥）
+  /// 访问密钥
   final String secretAccessKey;
 
-  /// 桶名称
+  /// 存储桶名称
   final String bucketName;
+
+  /// 备份目录
+  final String backupDir;
 
   const S3Config({
     required this.endpoint,
     required this.accessKeyId,
     required this.secretAccessKey,
     required this.bucketName,
+    this.backupDir = '',
   });
 
   /// 序列化为 JSON Map
@@ -86,6 +90,7 @@ class S3Config {
       'accessKeyId': accessKeyId,
       'secretAccessKey': secretAccessKey,
       'bucketName': bucketName,
+      'backupDir': backupDir,
     };
   }
 
@@ -96,6 +101,7 @@ class S3Config {
       accessKeyId: json['accessKeyId'] ?? '',
       secretAccessKey: json['secretAccessKey'] ?? '',
       bucketName: json['bucketName'] ?? '',
+      backupDir: json['backupDir'] ?? '',
     );
   }
 
@@ -105,18 +111,59 @@ class S3Config {
     String? accessKeyId,
     String? secretAccessKey,
     String? bucketName,
+    String? backupDir,
   }) {
     return S3Config(
       endpoint: endpoint ?? this.endpoint,
       accessKeyId: accessKeyId ?? this.accessKeyId,
       secretAccessKey: secretAccessKey ?? this.secretAccessKey,
       bucketName: bucketName ?? this.bucketName,
+      backupDir: backupDir ?? this.backupDir,
     );
   }
 }
 
-/// 备份配置
-class BackupConfig {
+/// 安全设置
+class SecuritySetting {
+  /// 是否开启应用锁 (0: 关闭, 1: 开启)
+  final int appLockEnabled;
+
+  /// 是否开启截屏锁 (0: 关闭, 1: 开启)
+  final int screenshotLockEnabled;
+
+  const SecuritySetting({
+    this.appLockEnabled = 0,
+    this.screenshotLockEnabled = 1,
+  });
+
+  /// 序列化为 JSON Map
+  Map<String, dynamic> toJson() {
+    return {
+      'appLockEnabled': appLockEnabled,
+      'screenshotLockEnabled': screenshotLockEnabled,
+    };
+  }
+
+  /// 从 JSON Map 反序列化
+  factory SecuritySetting.fromJson(Map<String, dynamic> json) {
+    return SecuritySetting(
+      appLockEnabled: json['appLockEnabled'] ?? 0,
+      screenshotLockEnabled: json['screenshotLockEnabled'] ?? 1,
+    );
+  }
+
+  /// 创建副本，可选择覆盖部分字段
+  SecuritySetting copyWith({int? appLockEnabled, int? screenshotLockEnabled}) {
+    return SecuritySetting(
+      appLockEnabled: appLockEnabled ?? this.appLockEnabled,
+      screenshotLockEnabled:
+          screenshotLockEnabled ?? this.screenshotLockEnabled,
+    );
+  }
+}
+
+/// 备份设置
+class BackupSetting {
   /// 备份类型（关闭、WebDAV、S3）
   final BackupType type;
 
@@ -126,17 +173,17 @@ class BackupConfig {
   /// S3 配置
   final S3Config s3Config;
 
-  /// 备份加密秘钥（由 WebDAV 密码或 S3 secretAccessKey 同步生成，用户不可直接修改）
+  /// 备份加密秘钥（在备份时自动生成，用于解密备份文件）
   final String backupKey;
 
-  BackupConfig({
+  const BackupSetting({
     required this.type,
     required this.webDavConfig,
     required this.s3Config,
     required this.backupKey,
   });
 
-  /// 序列化为 JSON Map（不包含 autoBackup，因为它是派生状态）
+  /// 序列化为 JSON Map
   Map<String, dynamic> toJson() {
     return {
       'type': type.toString().split('.').last,
@@ -146,9 +193,9 @@ class BackupConfig {
     };
   }
 
-  /// 从 JSON Map 反序列化（兼容旧版本含 autoBackup 字段的配置）
-  factory BackupConfig.fromJson(Map<String, dynamic> json) {
-    return BackupConfig(
+  /// 从 JSON Map 反序列化
+  factory BackupSetting.fromJson(Map<String, dynamic> json) {
+    return BackupSetting(
       type: BackupType.values.firstWhere(
         (e) => e.toString().split('.').last == json['type'],
         orElse: () => BackupType.off,
@@ -160,20 +207,58 @@ class BackupConfig {
   }
 
   /// 创建副本，可选择覆盖部分字段
-  BackupConfig copyWith({
+  BackupSetting copyWith({
     BackupType? type,
     WebDavConfig? webDavConfig,
     S3Config? s3Config,
     String? backupKey,
-    bool? backupOnOpen,
-    bool? backupOnExit,
-    bool? backupOnRefresh,
   }) {
-    return BackupConfig(
+    return BackupSetting(
       type: type ?? this.type,
       webDavConfig: webDavConfig ?? this.webDavConfig,
       s3Config: s3Config ?? this.s3Config,
       backupKey: backupKey ?? this.backupKey,
+    );
+  }
+}
+
+/// 应用设置（主类）
+class Setting {
+  /// 备份设置
+  final BackupSetting backupSetting;
+
+  /// 安全设置
+  final SecuritySetting securitySetting;
+
+  const Setting({
+    required this.backupSetting,
+    this.securitySetting = const SecuritySetting(),
+  });
+
+  /// 序列化为 JSON Map
+  Map<String, dynamic> toJson() {
+    return {
+      'backupSetting': backupSetting.toJson(),
+      'securitySetting': securitySetting.toJson(),
+    };
+  }
+
+  /// 从 JSON Map 反序列化
+  factory Setting.fromJson(Map<String, dynamic> json) {
+    return Setting(
+      backupSetting: BackupSetting.fromJson(json['backupSetting'] ?? {}),
+      securitySetting: SecuritySetting.fromJson(json['securitySetting'] ?? {}),
+    );
+  }
+
+  /// 创建副本，可选择覆盖部分字段
+  Setting copyWith({
+    BackupSetting? backupSetting,
+    SecuritySetting? securitySetting,
+  }) {
+    return Setting(
+      backupSetting: backupSetting ?? this.backupSetting,
+      securitySetting: securitySetting ?? this.securitySetting,
     );
   }
 }

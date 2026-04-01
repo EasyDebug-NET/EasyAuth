@@ -75,4 +75,38 @@ class StyleUtils {
     size: 16,
     color: Colors.grey,
   );
+
+  /// 白色信息图标
+  static const Icon whiteInfoIcon = Icon(
+    Icons.info_outline,
+    size: 16,
+    color: Colors.white70,
+  );
+
+  /// 锁容器样式
+  static BoxDecoration lockContainerStyle(BuildContext context) {
+    return BoxDecoration(
+      color: Theme.of(context).colorScheme.primary.withAlpha(230),
+      borderRadius: BorderRadius.circular(8),
+    );
+  }
+
+  /// 锁文本样式
+  static const TextStyle lockTextStyle = TextStyle(
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+  );
+
+  /// 锁开关样式
+  static SwitchThemeData lockSwitchTheme(BuildContext context) {
+    return SwitchThemeData(
+      trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return Colors.transparent;
+        }
+        return Theme.of(context).colorScheme.primary.withAlpha(128);
+      }),
+    );
+  }
 }

@@ -1,7 +1,8 @@
-import 'dart:typed_data';
 import 'dart:math';
-import 'package:crypto/crypto.dart';
+import 'dart:typed_data';
+
 import 'package:base32/base32.dart';
+import 'package:crypto/crypto.dart';
 
 /// TOTP服务类，用于计算基于时间的一次性密码
 class TotpService {
