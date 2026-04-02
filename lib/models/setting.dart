@@ -6,7 +6,7 @@ class WebDavConfig {
   /// WebDAV 服务器地址
   final String url;
 
-  /// 备份目录（相对于 WebDAV 根目录的子目录）
+  /// 存储路径（相对于 WebDAV 根目录的子目录）
   final String backupDir;
 
   /// 授权用户名
@@ -72,7 +72,7 @@ class S3Config {
   /// 存储桶名称
   final String bucketName;
 
-  /// 备份目录
+  /// 存储路径
   final String backupDir;
 
   const S3Config({

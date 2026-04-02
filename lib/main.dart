@@ -43,13 +43,13 @@ class _MyAppState extends State<MyApp> {
   ///
   /// 执行步骤：
   /// 1. 从安全存储中加载设置配置
-  /// 2. 初始化时设置截屏锁定状态
+  /// 2. 初始化时设置截屏锁状态
   /// 3. 如果加载失败，使用默认配置
   Future<void> _loadSettings() async {
     final backupService = BackupService();
     try {
       _setting = await backupService.loadConfig();
-      // 初始化时设置截屏锁定状态
+      // 初始化时设置截屏锁状态
       await _updateScreenshotLock();
     } catch (e) {
       _setting = Setting(
@@ -81,11 +81,11 @@ class _MyAppState extends State<MyApp> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 依赖变化时更新截屏锁定状态
+    // 依赖变化时更新截屏锁状态
     _updateScreenshotLock();
   }
 
-  /// 更新截屏锁定状态
+  /// 更新截屏锁状态
   Future<void> _updateScreenshotLock() async {
     if (_setting.securitySetting.screenshotLockEnabled == 1) {
       // 防止截屏

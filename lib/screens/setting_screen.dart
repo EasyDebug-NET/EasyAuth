@@ -124,9 +124,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  /// 更新截屏锁定状态
+  /// 更新截屏锁状态
   ///
-  /// [enabled] 是否启用截屏锁定
+  /// [enabled] 是否启用截屏锁
   Future<void> _updateScreenshotLock(bool enabled) async {
     try {
       if (enabled) {
@@ -134,20 +134,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await FlutterWindowManagerPlus.addFlags(
           FlutterWindowManagerPlus.FLAG_SECURE,
         );
-        debugPrint('截屏锁定已开启');
+        debugPrint('截屏锁已开启');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('截屏锁已开启'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
         // 允许截屏
         await FlutterWindowManagerPlus.clearFlags(
           FlutterWindowManagerPlus.FLAG_SECURE,
         );
-        debugPrint('截屏锁定已关闭');
+        debugPrint('截屏锁已关闭');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('截屏锁已关闭'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     } catch (e) {
-      debugPrint('更新截屏锁定状态失败: $e');
+      debugPrint('更新截屏锁状态失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('更新截屏锁定状态失败: ${e.toString()}'),
+            content: Text('更新截屏锁状态失败: ${e.toString()}'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.red,
           ),
@@ -186,9 +202,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
         });
         await _saveConfig();
-        // 认证成功后返回主页
+        // 显示成功提示，保持在设置页面
         if (mounted) {
-          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('应用锁已开启'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       }
     } else {
@@ -657,22 +678,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           '截屏锁',
                                           style: StyleUtils.lockTextStyle,
                                         ),
-                                        IconButton(
-                                          onPressed: () {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  '允许其他应用程序截屏，包括一次性密码',
-                                                ),
-                                                behavior:
-                                                    SnackBarBehavior.floating,
-                                              ),
-                                            );
-                                          },
-                                          icon: StyleUtils.whiteInfoIcon,
-                                        ),
                                       ],
                                     ),
                                     Switch(
@@ -694,7 +699,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           );
                                         });
                                         await _saveConfig();
-                                        // 立即更新截屏锁定状态
+                                        // 立即更新截屏锁状态
                                         await _updateScreenshotLock(value);
                                       },
                                       activeThumbColor: Colors.white,
@@ -1300,483 +1305,485 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
 
-    return Container(
+    return AnimatedPadding(
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
         top: 24,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        color: Colors.white,
-      ),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '备份参数配置',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // 备份类型
-              DropdownButtonFormField<String>(
-                initialValue: _config.backupSetting.type
-                    .toString()
-                    .split('.')
-                    .last,
-                decoration: const InputDecoration(
-                  labelText: '备份类型',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  const DropdownMenuItem(value: 'off', child: Text('关闭')),
-                  const DropdownMenuItem(
-                    value: 'webdav',
-                    child: Text('WebDAV'),
-                  ),
-                  const DropdownMenuItem(
-                    value: 's3',
-                    child: Text('对象存储/S3/OSS/COS'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    final newType = BackupType.values.firstWhere(
-                      (e) => e.toString().split('.').last == value,
-                    );
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          type: newType,
-                        ),
-                      );
-                      // 更新控制器的值
-                      _initControllers();
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // WebDAV 配置
-              if (_config.backupSetting.type == BackupType.webdav) ...[
-                TextFormField(
-                  controller: _webDavUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'WebDAV地址',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'WebDAV地址不能为空';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    String processedValue = value;
-                    if (processedValue.endsWith('/')) {
-                      processedValue = processedValue.substring(
-                        0,
-                        processedValue.length - 1,
-                      );
-                    }
-                    _webDavUrlController.text = processedValue;
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          webDavConfig: _config.backupSetting.webDavConfig
-                              .copyWith(url: processedValue),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _webDavUsernameController,
-                  decoration: const InputDecoration(
-                    labelText: '授权账号',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '授权账号不能为空';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          webDavConfig: _config.backupSetting.webDavConfig
-                              .copyWith(username: value),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _webDavPasswordController,
-                  decoration: const InputDecoration(
-                    labelText: '授权密码',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '授权密码不能为空';
-                    }
-                    return null;
-                  },
-                  obscureText: true,
-                  onChanged: (value) {
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          webDavConfig: _config.backupSetting.webDavConfig
-                              .copyWith(password: value),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _webDavBackupDirController,
-                  decoration: const InputDecoration(
-                    labelText: '备份目录',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '备份目录不能为空';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          webDavConfig: _config.backupSetting.webDavConfig
-                              .copyWith(backupDir: value.trim()),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () =>
-                        _launchUrl('https://help.jianguoyun.com/?p=2064'),
-                    child: const Text('如何获取配置信息'),
-                  ),
-                ),
-              ] else if (_config.backupSetting.type == BackupType.s3) ...[
-                // 对象存储/S3/OSS/COS 配置
-                TextFormField(
-                  controller: _s3EndpointController,
-                  decoration: const InputDecoration(
-                    labelText: 'Endpoint URL',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Endpoint URL不能为空';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          s3Config: _config.backupSetting.s3Config.copyWith(
-                            endpoint: value,
-                          ),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _s3AccessKeyIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Access Key ID',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Access Key ID不能为空';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          s3Config: _config.backupSetting.s3Config.copyWith(
-                            accessKeyId: value,
-                          ),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _s3SecretAccessKeyController,
-                  decoration: const InputDecoration(
-                    labelText: 'Secret Access Key',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Secret Access Key不能为空';
-                    }
-                    return null;
-                  },
-                  obscureText: true,
-                  onChanged: (value) {
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          s3Config: _config.backupSetting.s3Config.copyWith(
-                            secretAccessKey: value,
-                          ),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _s3BucketNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Bucket Name',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Bucket Name不能为空';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          s3Config: _config.backupSetting.s3Config.copyWith(
-                            bucketName: value,
-                          ),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _s3BackupDirController,
-                  decoration: const InputDecoration(
-                    labelText: '备份目录',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      String processedValue = value.trim();
-                      _config = _config.copyWith(
-                        backupSetting: _config.backupSetting.copyWith(
-                          s3Config: _config.backupSetting.s3Config.copyWith(
-                            backupDir: processedValue,
-                          ),
-                        ),
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => _launchUrl('https://s.qiniu.com/eeemeu'),
-                    child: const Text('如何获取配置信息'),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[200]!),
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey[50],
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '推荐使用七牛云对象存储',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            TextButton(
-                              onPressed: () =>
-                                  _launchUrl('https://s.qiniu.com/fAn6ru'),
-                              child: const Text('立即注册七牛云，注册即获万元免费额度'),
-                            ),
-                          ],
-                        ),
+      duration: const Duration(milliseconds: 100),
+      child: Container(
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          color: Colors.white,
+        ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '备份参数配置',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 32),
-
-              // 按钮
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
+                    ),
+                    IconButton(
                       onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text('取消'),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // 备份类型
+                DropdownButtonFormField<String>(
+                  initialValue: _config.backupSetting.type
+                      .toString()
+                      .split('.')
+                      .last,
+                  decoration: const InputDecoration(
+                    labelText: '备份类型',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: 'off', child: Text('关闭')),
+                    const DropdownMenuItem(
+                      value: 'webdav',
+                      child: Text('WebDAV'),
+                    ),
+                    const DropdownMenuItem(value: 's3', child: Text('对象存储')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      final newType = BackupType.values.firstWhere(
+                        (e) => e.toString().split('.').last == value,
+                      );
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            type: newType,
+                          ),
+                        );
+                        // 更新控制器的值
+                        _initControllers();
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // WebDAV 配置
+                if (_config.backupSetting.type == BackupType.webdav) ...[
+                  TextFormField(
+                    controller: _webDavUrlController,
+                    decoration: const InputDecoration(
+                      labelText: 'WebDAV地址',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'WebDAV地址不能为空';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      String processedValue = value;
+                      if (processedValue.endsWith('/')) {
+                        processedValue = processedValue.substring(
+                          0,
+                          processedValue.length - 1,
+                        );
+                      }
+                      _webDavUrlController.text = processedValue;
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            webDavConfig: _config.backupSetting.webDavConfig
+                                .copyWith(url: processedValue),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _webDavUsernameController,
+                    decoration: const InputDecoration(
+                      labelText: '授权账号',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '授权账号不能为空';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            webDavConfig: _config.backupSetting.webDavConfig
+                                .copyWith(username: value),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _webDavPasswordController,
+                    decoration: const InputDecoration(
+                      labelText: '授权密码',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '授权密码不能为空';
+                      }
+                      return null;
+                    },
+                    obscureText: true,
+                    keyboardType: TextInputType.visiblePassword,
+                    onChanged: (value) {
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            webDavConfig: _config.backupSetting.webDavConfig
+                                .copyWith(password: value),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _webDavBackupDirController,
+                    decoration: const InputDecoration(
+                      labelText: '存储路径',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '存储路径不能为空';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            webDavConfig: _config.backupSetting.webDavConfig
+                                .copyWith(backupDir: value.trim()),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () =>
+                          _launchUrl('https://help.jianguoyun.com/?p=2064'),
+                      child: const Text('如何获取配置信息'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState?.validate() ?? false) {
-                          // 根据备份类型决定保存哪些数据，清空其他类型的数据
-                          BackupSetting newBackupSetting;
-
-                          if (_config.backupSetting.type == BackupType.off) {
-                            // 类型=关闭：清空 WEBDAV 和对象存储的数据
-                            newBackupSetting = _config.backupSetting.copyWith(
-                              webDavConfig: const WebDavConfig(
-                                url: '',
-                                backupDir: '',
-                                username: '',
-                                password: '',
+                ] else if (_config.backupSetting.type == BackupType.s3) ...[
+                  // 对象存储/S3/OSS/COS 配置
+                  TextFormField(
+                    controller: _s3EndpointController,
+                    decoration: const InputDecoration(
+                      labelText: 'Endpoint URL',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Endpoint URL不能为空';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            s3Config: _config.backupSetting.s3Config.copyWith(
+                              endpoint: value,
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3AccessKeyIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'Access Key ID',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Access Key ID不能为空';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            s3Config: _config.backupSetting.s3Config.copyWith(
+                              accessKeyId: value,
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3SecretAccessKeyController,
+                    decoration: const InputDecoration(
+                      labelText: 'Secret Access Key',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Secret Access Key不能为空';
+                      }
+                      return null;
+                    },
+                    obscureText: true,
+                    keyboardType: TextInputType.visiblePassword,
+                    onChanged: (value) {
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            s3Config: _config.backupSetting.s3Config.copyWith(
+                              secretAccessKey: value,
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3BucketNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Bucket Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Bucket Name不能为空';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            s3Config: _config.backupSetting.s3Config.copyWith(
+                              bucketName: value,
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3BackupDirController,
+                    decoration: const InputDecoration(
+                      labelText: 'Path',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        String processedValue = value.trim();
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            s3Config: _config.backupSetting.s3Config.copyWith(
+                              backupDir: processedValue,
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => _launchUrl('https://s.qiniu.com/eeemeu'),
+                      child: const Text('如何获取配置信息'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[200]!),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[50],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: Colors.blue),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '推荐使用七牛云对象存储',
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              s3Config: const S3Config(
-                                endpoint: '',
-                                accessKeyId: '',
-                                secretAccessKey: '',
-                                bucketName: '',
-                                backupDir: '',
+                              const SizedBox(height: 2),
+                              TextButton(
+                                onPressed: () =>
+                                    _launchUrl('https://s.qiniu.com/fAn6ru'),
+                                child: const Text('立即注册七牛云，即获万元免费额度'),
                               ),
-                            );
-                          } else if (_config.backupSetting.type ==
-                              BackupType.webdav) {
-                            // 类型=WEBDAV：保存 WEBDAV 数据，清空对象存储的数据
-                            newBackupSetting = _config.backupSetting.copyWith(
-                              webDavConfig: _config.backupSetting.webDavConfig
-                                  .copyWith(
-                                    url: _webDavUrlController.text,
-                                    backupDir:
-                                        _webDavBackupDirController.text.isEmpty
-                                        ? 'EasyAuth'
-                                        : _webDavBackupDirController.text,
-                                    username: _webDavUsernameController.text,
-                                    password: _webDavPasswordController.text,
-                                  ),
-                              s3Config: const S3Config(
-                                endpoint: '',
-                                accessKeyId: '',
-                                secretAccessKey: '',
-                                bucketName: '',
-                                backupDir: '',
-                              ),
-                            );
-                          } else if (_config.backupSetting.type ==
-                              BackupType.s3) {
-                            // 类型=对象存储：保存对象存储数据，清空 WEBDAV 的数据
-                            newBackupSetting = _config.backupSetting.copyWith(
-                              webDavConfig: const WebDavConfig(
-                                url: '',
-                                backupDir: '',
-                                username: '',
-                                password: '',
-                              ),
-                              s3Config: _config.backupSetting.s3Config.copyWith(
-                                endpoint: _s3EndpointController.text,
-                                accessKeyId: _s3AccessKeyIdController.text,
-                                secretAccessKey:
-                                    _s3SecretAccessKeyController.text,
-                                bucketName: _s3BucketNameController.text,
-                                backupDir: _s3BackupDirController.text,
-                              ),
-                            );
-                          } else {
-                            // 默认情况，保持原有逻辑
-                            newBackupSetting = _config.backupSetting.copyWith(
-                              webDavConfig: _config.backupSetting.webDavConfig
-                                  .copyWith(
-                                    url: _webDavUrlController.text,
-                                    backupDir:
-                                        _webDavBackupDirController.text.isEmpty
-                                        ? 'EasyAuth'
-                                        : _webDavBackupDirController.text,
-                                    username: _webDavUsernameController.text,
-                                    password: _webDavPasswordController.text,
-                                  ),
-                              s3Config: _config.backupSetting.s3Config.copyWith(
-                                endpoint: _s3EndpointController.text,
-                                accessKeyId: _s3AccessKeyIdController.text,
-                                secretAccessKey:
-                                    _s3SecretAccessKeyController.text,
-                                bucketName: _s3BucketNameController.text,
-                                backupDir: _s3BackupDirController.text,
-                              ),
-                            );
-                          }
-
-                          _config = _config.copyWith(
-                            backupSetting: newBackupSetting,
-                          );
-
-                          Navigator.pop(context, _config);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text('确认'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 24),
-            ],
+
+                const SizedBox(height: 32),
+
+                // 按钮
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text('取消'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_formKey.currentState?.validate() ?? false) {
+                            // 根据备份类型决定保存哪些数据，清空其他类型的数据
+                            BackupSetting newBackupSetting;
+
+                            if (_config.backupSetting.type == BackupType.off) {
+                              // 类型=关闭：清空 WEBDAV 和对象存储的数据
+                              newBackupSetting = _config.backupSetting.copyWith(
+                                webDavConfig: const WebDavConfig(
+                                  url: '',
+                                  backupDir: '',
+                                  username: '',
+                                  password: '',
+                                ),
+                                s3Config: const S3Config(
+                                  endpoint: '',
+                                  accessKeyId: '',
+                                  secretAccessKey: '',
+                                  bucketName: '',
+                                  backupDir: '',
+                                ),
+                              );
+                            } else if (_config.backupSetting.type ==
+                                BackupType.webdav) {
+                              // 类型=WEBDAV：保存 WEBDAV 数据，清空对象存储的数据
+                              newBackupSetting = _config.backupSetting.copyWith(
+                                webDavConfig: _config.backupSetting.webDavConfig
+                                    .copyWith(
+                                      url: _webDavUrlController.text,
+                                      backupDir:
+                                          _webDavBackupDirController.text,
+                                      username: _webDavUsernameController.text,
+                                      password: _webDavPasswordController.text,
+                                    ),
+                                s3Config: const S3Config(
+                                  endpoint: '',
+                                  accessKeyId: '',
+                                  secretAccessKey: '',
+                                  bucketName: '',
+                                  backupDir: '',
+                                ),
+                              );
+                            } else if (_config.backupSetting.type ==
+                                BackupType.s3) {
+                              // 类型=对象存储：保存对象存储数据，清空 WEBDAV 的数据
+                              newBackupSetting = _config.backupSetting.copyWith(
+                                webDavConfig: const WebDavConfig(
+                                  url: '',
+                                  backupDir: '',
+                                  username: '',
+                                  password: '',
+                                ),
+                                s3Config: _config.backupSetting.s3Config
+                                    .copyWith(
+                                      endpoint: _s3EndpointController.text,
+                                      accessKeyId:
+                                          _s3AccessKeyIdController.text,
+                                      secretAccessKey:
+                                          _s3SecretAccessKeyController.text,
+                                      bucketName: _s3BucketNameController.text,
+                                      backupDir: _s3BackupDirController.text,
+                                    ),
+                              );
+                            } else {
+                              // 默认情况，保持原有逻辑
+                              newBackupSetting = _config.backupSetting.copyWith(
+                                webDavConfig: _config.backupSetting.webDavConfig
+                                    .copyWith(
+                                      url: _webDavUrlController.text,
+                                      backupDir:
+                                          _webDavBackupDirController.text,
+                                      username: _webDavUsernameController.text,
+                                      password: _webDavPasswordController.text,
+                                    ),
+                                s3Config: _config.backupSetting.s3Config
+                                    .copyWith(
+                                      endpoint: _s3EndpointController.text,
+                                      accessKeyId:
+                                          _s3AccessKeyIdController.text,
+                                      secretAccessKey:
+                                          _s3SecretAccessKeyController.text,
+                                      bucketName: _s3BucketNameController.text,
+                                      backupDir: _s3BackupDirController.text,
+                                    ),
+                              );
+                            }
+
+                            _config = _config.copyWith(
+                              backupSetting: newBackupSetting,
+                            );
+
+                            Navigator.pop(context, _config);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text('确认'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),

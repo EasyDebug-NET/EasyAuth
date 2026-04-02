@@ -182,6 +182,17 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 从本地数据库加载账户数据
   Future<void> _loadLocalAccounts() async {
+    await _updateAccounts();
+  }
+
+  /// 更新账户数据
+  ///
+  /// 执行步骤：
+  /// 1. 从数据库获取账户数据
+  /// 2. 检查数据是否变化
+  /// 3. 如果数据变化，更新UI和动态码
+  /// 4. 如果数据未变化，只更新动态码
+  Future<void> _updateAccounts() async {
     try {
       final accounts = await _storageService.getAllAccounts();
 
@@ -214,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen>
         _updateCodes();
       }
     } catch (e) {
-      debugPrint('加载本地账户失败: $e');
+      debugPrint('加载账户失败: $e');
     }
   }
 
@@ -562,41 +573,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     _loadAccountsDebounceTimer = Timer(Duration(milliseconds: 50), () async {
-      try {
-        // 获取账户数据
-        final accounts = await _storageService.getAllAccounts();
-
-        // 检查是否需要更新，只有当账户数据真正变化时才更新
-        if (_accounts.length != accounts.length ||
-            !_accounts.every(
-              (account) => accounts.any(
-                (newAccount) =>
-                    newAccount.id == account.id &&
-                    newAccount.issuer == account.issuer &&
-                    newAccount.name == account.name &&
-                    newAccount.secret == account.secret &&
-                    newAccount.period == account.period &&
-                    newAccount.algorithm == account.algorithm,
-              ),
-            )) {
-          // 延迟更新 UI，让主线程有更多时间处理其他任务
-          Future.delayed(Duration(milliseconds: 16), () {
-            setState(() {
-              _accounts = accounts;
-            });
-            // 延迟更新动态码，进一步减轻主线程负担
-            Future.delayed(Duration(milliseconds: 8), () {
-              _updateCodes();
-              _filterAccounts();
-            });
-          });
-        } else {
-          // 数据没有变化，只更新动态码
-          _updateCodes();
-        }
-      } catch (e) {
-        debugPrint('加载账户失败: $e');
-      }
+      await _updateAccounts();
     });
   }
 
@@ -652,6 +629,7 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
+    // 一次性更新状态，减少setState调用次数
     setState(() {
       for (final account in _accounts) {
         _codes[account.id] = TotpService.generateCode(
@@ -768,20 +746,50 @@ class _HomeScreenState extends State<HomeScreen>
           try {
             await _backupService.performBackup(_setting!);
             if (mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('备份成功')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('备份成功'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
               setState(() {
                 _operationStatus = 1;
+              });
+
+              // 3秒后自动重置状态
+              Future.delayed(Duration(seconds: 3), () {
+                if (mounted) {
+                  setState(() {
+                    _operationStatus = 0;
+                  });
+                }
               });
             }
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('备份失败: $e')));
+              String errorMessage = '备份失败';
+              if (e is Exception) {
+                errorMessage = '备份失败: ${e.toString().split(':').last.trim()}';
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(errorMessage),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 3),
+                ),
+              );
               setState(() {
                 _operationStatus = 2;
+              });
+
+              // 3秒后自动重置状态
+              Future.delayed(Duration(seconds: 3), () {
+                if (mounted) {
+                  setState(() {
+                    _operationStatus = 0;
+                  });
+                }
               });
             }
           } finally {
@@ -790,15 +798,6 @@ class _HomeScreenState extends State<HomeScreen>
                 _isBackupRunning = false;
                 _isUploadIconFilling = false;
               });
-
-              // 不再重置状态，保持成功/失败状态
-              // Future.delayed(Duration(seconds: 3), () {
-              //   if (mounted) {
-              //     setState(() {
-              //       _operationStatus = 0;
-              //     });
-              //   }
-              // });
             }
           }
         } else if (value == 'restore') {
@@ -835,14 +834,27 @@ class _HomeScreenState extends State<HomeScreen>
             try {
               await _backupService.restoreBackup(_setting!);
               if (mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('恢复成功')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('恢复成功'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
                 setState(() {
                   _operationStatus = 1;
                 });
                 // 重新加载账户
                 await _loadAccounts();
+
+                // 3秒后自动重置状态
+                Future.delayed(Duration(seconds: 3), () {
+                  if (mounted) {
+                    setState(() {
+                      _operationStatus = 0;
+                    });
+                  }
+                });
               }
             } catch (e) {
               if (mounted) {
@@ -853,7 +865,7 @@ class _HomeScreenState extends State<HomeScreen>
                   errorMessage = e.message;
                   errorDetails = e.details;
                 } else {
-                  errorMessage = '恢复失败: ${e.toString()}';
+                  errorMessage = '恢复失败: ${e.toString().split(':').last.trim()}';
                 }
 
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -873,11 +885,21 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                       ],
                     ),
-                    duration: const Duration(seconds: 5),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
                   ),
                 );
                 setState(() {
                   _operationStatus = 2;
+                });
+
+                // 3秒后自动重置状态
+                Future.delayed(Duration(seconds: 3), () {
+                  if (mounted) {
+                    setState(() {
+                      _operationStatus = 0;
+                    });
+                  }
                 });
               }
             } finally {
@@ -886,15 +908,6 @@ class _HomeScreenState extends State<HomeScreen>
                   _isRestoreRunning = false;
                   _isDownloadIconFilling = false;
                 });
-
-                // 不再重置状态，保持成功/失败状态
-                // Future.delayed(Duration(seconds: 3), () {
-                //   if (mounted) {
-                //     setState(() {
-                //       _operationStatus = 0;
-                //     });
-                //   }
-                // });
               }
             }
           }

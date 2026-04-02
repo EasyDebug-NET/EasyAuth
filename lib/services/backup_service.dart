@@ -673,7 +673,7 @@ class BackupService {
   /// 构建 WebDAV 文件完整 URL
   ///
   /// [baseUrl] WebDAV 服务器基础 URL
-  /// [backupDir] 备份目录
+  /// [backupDir] 存储路径
   /// [fileName] 文件名
   ///
   /// 返回构建好的文件 URL
@@ -691,7 +691,7 @@ class BackupService {
   /// 构建 WebDAV 目录 URL（用于 PROPFIND 列出文件）
   ///
   /// [baseUrl] WebDAV 服务器基础 URL
-  /// [backupDir] 备份目录
+  /// [backupDir] 存储路径
   ///
   /// 返回构建好的目录 URL（确保以 / 结尾）
   String buildWebDavDirUrl(String baseUrl, String backupDir) {
