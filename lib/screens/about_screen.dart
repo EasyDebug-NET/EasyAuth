@@ -1,11 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// 关于页面
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
 
   @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  late PackageInfo _packageInfo;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPackageInfo();
+  }
+
+  Future<void> _loadPackageInfo() async {
+    _packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final themeColor = Theme.of(context).colorScheme.primary;
+
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -33,15 +57,37 @@ class AboutScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              'EasyAuth',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Easy',
+                      style: TextStyle(
+                        color: themeColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextSpan(
+                      text: 'Auth',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              '版本 1.0.0',
+            _isLoading
+                ? const CircularProgressIndicator()
+                : Text(
+              // '版本 ${_packageInfo.version} (${_packageInfo.buildNumber})',
+              '版本 ${_packageInfo.version}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[600],
               ),
