@@ -86,12 +86,12 @@ class _AboutScreenState extends State<AboutScreen> {
             _isLoading
                 ? const CircularProgressIndicator()
                 : Text(
-              // '版本 ${_packageInfo.version} (${_packageInfo.buildNumber})',
-              '版本 ${_packageInfo.version}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
-            ),
+                    // '版本 ${_packageInfo.version} (${_packageInfo.buildNumber})',
+                    '版本 ${_packageInfo.version}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
             const SizedBox(height: 96),
             Text(
               '2016-2026 EasyDebug.NET All rights reserved.',

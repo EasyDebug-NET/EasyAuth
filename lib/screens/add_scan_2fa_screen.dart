@@ -160,11 +160,14 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
         throw FormatException('密钥格式无效，必须是Base32编码');
       }
 
+      // 转换secret为大写，确保Base32编码格式正确
+      final normalizedSecret = secret.toUpperCase();
+
       final account = TwoFactorAccount.name(
         0,
         params['issuer'] as String?,
         params['name'] as String?,
-        secret,
+        normalizedSecret,
         params['period'] as int,
         params['algorithm'] as String,
         DateTime.now(),

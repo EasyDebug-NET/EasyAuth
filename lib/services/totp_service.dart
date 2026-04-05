@@ -30,36 +30,41 @@ class TotpService {
     int digits = 6,
     int? timestamp,
   }) {
-    // 使用当前时间戳或指定时间戳
-    final time = timestamp ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    try {
+      // 使用当前时间戳或指定时间戳
+      final time = timestamp ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    // 计算时间步数
-    final counter = time ~/ period;
+      // 计算时间步数
+      final counter = time ~/ period;
 
-    // 将计数器转换为8字节的大端序字节数组
-    final counterBytes = _intToBytes(counter);
+      // 将计数器转换为8字节的大端序字节数组
+      final counterBytes = _intToBytes(counter);
 
-    // 解码Base32秘钥
-    final key = base32.decode(secret);
+      // 解码Base32秘钥
+      final key = base32.decode(secret);
 
-    // 计算HMAC-SHA1
-    final hmac = Hmac(sha1, key);
-    final digest = hmac.convert(counterBytes);
+      // 计算HMAC-SHA1
+      final hmac = Hmac(sha1, key);
+      final digest = hmac.convert(counterBytes);
 
-    // 动态截取
-    final offset = digest.bytes[digest.bytes.length - 1] & 0x0f;
-    final binary =
-        ((digest.bytes[offset] & 0x7f) << 24) |
-        ((digest.bytes[offset + 1] & 0xff) << 16) |
-        ((digest.bytes[offset + 2] & 0xff) << 8) |
-        (digest.bytes[offset + 3] & 0xff);
+      // 动态截取
+      final offset = digest.bytes[digest.bytes.length - 1] & 0x0f;
+      final binary =
+          ((digest.bytes[offset] & 0x7f) << 24) |
+          ((digest.bytes[offset + 1] & 0xff) << 16) |
+          ((digest.bytes[offset + 2] & 0xff) << 8) |
+          (digest.bytes[offset + 3] & 0xff);
 
-    // 计算动态码
-    final otp = binary % pow(10, digits).toInt();
+      // 计算动态码
+      final otp = binary % pow(10, digits).toInt();
 
-    // 格式化为指定位数的字符串
-    return otp.toString().padLeft(digits, '0');
-    // 使用字符串插值优化性能
+      // 格式化为指定位数的字符串
+      return otp.toString().padLeft(digits, '0');
+      // 使用字符串插值优化性能
+    } catch (e) {
+      // 如果解码失败，返回错误占位符
+      return 'ERROR';
+    }
   }
 
   /// 获取当前周期剩余秒数
@@ -105,15 +110,15 @@ class TotpService {
     }
 
     // 解析路径获取issuer和name
-    final path = parsedUri.path.substring(1); // 移除开头的'/'
-    final parts = path.split(':');
+    final path = Uri.decodeFull(parsedUri.path.substring(1)); // 移除开头的'/'并解码
+    final colonIndex = path.indexOf(':');
 
-    if (parts.length == 2) {
-      result['issuer'] = parts[0];
-      result['name'] = parts[1];
+    if (colonIndex != -1) {
+      result['issuer'] = path.substring(0, colonIndex);
+      result['name'] = path.substring(colonIndex + 1);
     } else {
       result['issuer'] = '';
-      result['name'] = parts[0];
+      result['name'] = path;
     }
 
     // 解析查询参数

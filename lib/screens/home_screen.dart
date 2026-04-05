@@ -632,10 +632,16 @@ class _HomeScreenState extends State<HomeScreen>
     // 一次性更新状态，减少setState调用次数
     setState(() {
       for (final account in _accounts) {
-        _codes[account.id] = TotpService.generateCode(
-          secret: account.secret,
-          period: account.period,
-        );
+        try {
+          _codes[account.id] = TotpService.generateCode(
+            secret: account.secret,
+            period: account.period,
+          );
+        } catch (e) {
+          // 单个账户生成失败，显示错误信息但不影响其他账户
+          _codes[account.id] = 'ERROR';
+          debugPrint('生成动态码失败 - 账户 ${account.displayName}: $e');
+        }
         _remainingSeconds[account.id] = remainingSeconds;
       }
     });

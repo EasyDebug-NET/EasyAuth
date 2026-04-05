@@ -49,86 +49,117 @@ class StorageService {
 
   /// 插入账户
   Future<int> insertAccount(TwoFactorAccount account) async {
-    final db = await database;
-    return await db.insert('two_factor_accounts', {
-      'issuer': account.issuer,
-      'account_name': account.name,
-      'secret': account.secret,
-      'period': account.period,
-      'algorithm': account.algorithm,
-      'created_at': account.createdAt.millisecondsSinceEpoch,
-      'updated_at': account.updatedAt.millisecondsSinceEpoch,
-    });
+    try {
+      final db = await database;
+      return await db.insert('two_factor_accounts', {
+        'issuer': account.issuer,
+        'account_name': account.name,
+        'secret': account.secret,
+        'period': account.period,
+        'algorithm': account.algorithm,
+        'created_at': account.createdAt.millisecondsSinceEpoch,
+        'updated_at': account.updatedAt.millisecondsSinceEpoch,
+      });
+    } catch (e) {
+      print('插入账户失败: $e');
+      return -1;
+    }
   }
 
   /// 获取所有账户
   Future<List<TwoFactorAccount>> getAllAccounts() async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'two_factor_accounts',
-      orderBy: 'created_at DESC',
-    );
-
-    return List.generate(maps.length, (i) {
-      return TwoFactorAccount.name(
-        maps[i]['id'] as int,
-        maps[i]['issuer'] as String?,
-        maps[i]['account_name'] as String?,
-        maps[i]['secret'] as String,
-        maps[i]['period'] as int,
-        maps[i]['algorithm'] as String,
-        DateTime.fromMillisecondsSinceEpoch(maps[i]['created_at'] as int),
-        DateTime.fromMillisecondsSinceEpoch(maps[i]['updated_at'] as int),
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'two_factor_accounts',
+        orderBy: 'created_at DESC',
       );
-    });
+
+      return List.generate(maps.length, (i) {
+        try {
+          return TwoFactorAccount.name(
+            maps[i]['id'] as int,
+            maps[i]['issuer'] as String?,
+            maps[i]['account_name'] as String?,
+            maps[i]['secret'] as String,
+            maps[i]['period'] as int,
+            maps[i]['algorithm'] as String,
+            DateTime.fromMillisecondsSinceEpoch(maps[i]['created_at'] as int),
+            DateTime.fromMillisecondsSinceEpoch(maps[i]['updated_at'] as int),
+          );
+        } catch (e) {
+          print('解析账户数据失败: $e');
+          // 跳过有问题的账户，确保其他账户正常加载
+          return null;
+        }
+      }).where((account) => account != null).cast<TwoFactorAccount>().toList();
+    } catch (e) {
+      print('获取账户列表失败: $e');
+      return [];
+    }
   }
 
   /// 根据ID获取账户
   Future<TwoFactorAccount?> getAccountById(int id) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'two_factor_accounts',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'two_factor_accounts',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
 
-    if (maps.isEmpty) return null;
+      if (maps.isEmpty) return null;
 
-    return TwoFactorAccount.name(
-      maps[0]['id'] as int,
-      maps[0]['issuer'] as String?,
-      maps[0]['account_name'] as String?,
-      maps[0]['secret'] as String,
-      maps[0]['period'] as int,
-      maps[0]['algorithm'] as String,
-      DateTime.fromMillisecondsSinceEpoch(maps[0]['created_at'] as int),
-      DateTime.fromMillisecondsSinceEpoch(maps[0]['updated_at'] as int),
-    );
+      return TwoFactorAccount.name(
+        maps[0]['id'] as int,
+        maps[0]['issuer'] as String?,
+        maps[0]['account_name'] as String?,
+        maps[0]['secret'] as String,
+        maps[0]['period'] as int,
+        maps[0]['algorithm'] as String,
+        DateTime.fromMillisecondsSinceEpoch(maps[0]['created_at'] as int),
+        DateTime.fromMillisecondsSinceEpoch(maps[0]['updated_at'] as int),
+      );
+    } catch (e) {
+      print('获取账户失败: $e');
+      return null;
+    }
   }
 
   /// 更新账户（只更新issuer和accountName）
   Future<int> updateAccount(TwoFactorAccount account) async {
-    final db = await database;
-    return await db.update(
-      'two_factor_accounts',
-      {
-        'issuer': account.issuer,
-        'account_name': account.name,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
-      },
-      where: 'id = ?',
-      whereArgs: [account.id],
-    );
+    try {
+      final db = await database;
+      return await db.update(
+        'two_factor_accounts',
+        {
+          'issuer': account.issuer,
+          'account_name': account.name,
+          'updated_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        where: 'id = ?',
+        whereArgs: [account.id],
+      );
+    } catch (e) {
+      print('更新账户失败: $e');
+      return 0;
+    }
   }
 
   /// 删除账户
   Future<int> deleteAccount(int id) async {
-    final db = await database;
-    return await db.delete(
-      'two_factor_accounts',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    try {
+      final db = await database;
+      return await db.delete(
+        'two_factor_accounts',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    } catch (e) {
+      print('删除账户失败: $e');
+      return 0;
+    }
   }
 
   /// 关闭数据库
