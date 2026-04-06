@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
@@ -40,10 +40,10 @@ class BackupService {
     String sourceData;
     if (setting.backupSetting.type == BackupType.webdav) {
       sourceData =
-          '${setting.backupSetting.webDavConfig.url}${setting.backupSetting.webDavConfig.username}${setting.backupSetting.webDavConfig.password}';
+      '${setting.backupSetting.webDavConfig.url}${setting.backupSetting.webDavConfig.username}${setting.backupSetting.webDavConfig.password}';
     } else if (setting.backupSetting.type == BackupType.s3) {
       sourceData =
-          '${setting.backupSetting.s3Config.endpoint}${setting.backupSetting.s3Config.accessKeyId}${setting.backupSetting.s3Config.secretAccessKey}';
+      '${setting.backupSetting.s3Config.endpoint}${setting.backupSetting.s3Config.accessKeyId}${setting.backupSetting.s3Config.secretAccessKey}';
     } else {
       throw ConfigException('不支持的备份类型');
     }
@@ -129,10 +129,10 @@ class BackupService {
           if (setting.backupSetting.s3Config.backupDir.isNotEmpty) {
             if (setting.backupSetting.s3Config.backupDir.endsWith('/')) {
               objectKey =
-                  '${setting.backupSetting.s3Config.backupDir}$fileName';
+              '${setting.backupSetting.s3Config.backupDir}$fileName';
             } else {
               objectKey =
-                  '${setting.backupSetting.s3Config.backupDir}/$fileName';
+              '${setting.backupSetting.s3Config.backupDir}/$fileName';
             }
           }
           await S3Utils.uploadFile(
@@ -226,10 +226,10 @@ class BackupService {
           );
           // 过滤并排序备份文件
           final backupFiles =
-              files
-                  .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
-                  .toList()
-                ..sort((a, b) => b.compareTo(a));
+          files
+              .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
 
           if (backupFiles.isEmpty) {
             throw StorageException(
@@ -265,23 +265,23 @@ class BackupService {
               ..sort((a, b) => b.compareTo(a));
           } else {
             backupFiles =
-                objects
-                    .where(
-                      (f) =>
-                          f.startsWith(
-                            setting.backupSetting.s3Config.backupDir,
-                          ) &&
-                          f.endsWith('.zip'),
-                    )
-                    .map(
-                      (f) => f
-                          .substring(
-                            setting.backupSetting.s3Config.backupDir.length,
-                          )
-                          .replaceFirst(RegExp(r'^/'), ''),
-                    )
-                    .toList()
-                  ..sort((a, b) => b.compareTo(a));
+            objects
+                .where(
+                  (f) =>
+              f.startsWith(
+                setting.backupSetting.s3Config.backupDir,
+              ) &&
+                  f.endsWith('.zip'),
+            )
+                .map(
+                  (f) => f
+                  .substring(
+                setting.backupSetting.s3Config.backupDir.length,
+              )
+                  .replaceFirst(RegExp(r'^/'), ''),
+            )
+                .toList()
+              ..sort((a, b) => b.compareTo(a));
           }
 
           if (backupFiles.isEmpty) {
@@ -296,10 +296,10 @@ class BackupService {
           if (setting.backupSetting.s3Config.backupDir.isNotEmpty) {
             if (setting.backupSetting.s3Config.backupDir.endsWith('/')) {
               objectKey =
-                  '${setting.backupSetting.s3Config.backupDir}$latestBackup';
+              '${setting.backupSetting.s3Config.backupDir}$latestBackup';
             } else {
               objectKey =
-                  '${setting.backupSetting.s3Config.backupDir}/$latestBackup';
+              '${setting.backupSetting.s3Config.backupDir}/$latestBackup';
             }
           }
           backupFile = await S3Utils.downloadFile(
@@ -334,10 +334,16 @@ class BackupService {
       }
 
       try {
+        // 如果 backupKey 为空，根据当前配置生成新的 backupKey
+        String backupKey = setting.backupSetting.backupKey;
+        if (backupKey.isEmpty) {
+          backupKey = _generateBackupKey(setting);
+        }
+
         // 解密并解压
         final migrationData = await _extractMigrationData(
           backupFile.path,
-          setting.backupSetting.backupKey,
+          backupKey,
         );
         // 恢复数据
         await _restoreFromMigrationData(migrationData);
@@ -372,7 +378,7 @@ class BackupService {
     try {
       final typeStr = await _secureStorage.read(key: 'backup_type') ?? 'off';
       final backupType = BackupType.values.firstWhere(
-        (e) => e.toString().split('.').last == typeStr,
+            (e) => e.toString().split('.').last == typeStr,
         orElse: () => BackupType.off,
       );
       final webDavUrl = await _secureStorage.read(key: 'webdav_url') ?? '';
@@ -528,15 +534,15 @@ class BackupService {
     final accountList = accounts
         .map(
           (account) => {
-            'secret': account.secret,
-            'name': account.name ?? '',
-            'issuer': account.issuer ?? '',
-            'algorithm': account.algorithm,
-            'digits': 6,
-            'type': 'totp', // 目前只支持 TOTP
-            'period': account.period,
-          },
-        )
+        'secret': account.secret,
+        'name': account.name ?? '',
+        'issuer': account.issuer ?? '',
+        'algorithm': account.algorithm,
+        'digits': 6,
+        'type': 'totp', // 目前只支持 TOTP
+        'period': account.period,
+      },
+    )
         .toList();
 
     // 复用 QrUtils 中的 generateMigrationData 方法
@@ -557,10 +563,10 @@ class BackupService {
   ///
   /// 返回创建的备份文件
   Future<File> _createBackupFile(
-    String migrationData,
-    String tempDir,
-    String backupKey,
-  ) async {
+      String migrationData,
+      String tempDir,
+      String backupKey,
+      ) async {
     // 创建 ZIP 存档
     final archive = Archive();
     final fileBytes = migrationData.codeUnits;
@@ -591,9 +597,9 @@ class BackupService {
   ///
   /// 返回迁移数据（otpauth-migration 格式）
   Future<String> _extractMigrationData(
-    String filePath,
-    String backupKey,
-  ) async {
+      String filePath,
+      String backupKey,
+      ) async {
     // 读取加密文件
     final encryptedData = await File(filePath).readAsBytes();
 
@@ -607,7 +613,7 @@ class BackupService {
 
       // 找到迁移数据文件
       final migrationFile = archive.files.firstWhere(
-        (file) => file.name == _migrationDataFileName,
+            (file) => file.name == _migrationDataFileName,
         orElse: () => throw Exception('备份文件格式错误'),
       );
 
@@ -627,8 +633,7 @@ class BackupService {
   /// 从迁移数据恢复账户
   Future<void> _restoreFromMigrationData(String migrationData) async {
     // 清空现有账户
-    final db = await _storageService.database;
-    await db.delete('two_factor_accounts');
+    await _storageService.clearAllAccounts();
 
     // 使用 QrUtils.parseMigrationData 解析迁移数据
     // 复用 qr_utils.dart 中的解析方法，确保与二维码解析逻辑一致
@@ -646,7 +651,7 @@ class BackupService {
 
       // 创建账户
       final twoFactorAccount = TwoFactorAccount.name(
-        0,
+        '',
         // ID 会自动生成
         issuer,
         name,
@@ -673,7 +678,7 @@ class BackupService {
   /// 构建 WebDAV 文件完整 URL
   ///
   /// [baseUrl] WebDAV 服务器基础 URL
-  /// [backupDir] 存储路径
+  /// [backupDir] 备份目录
   /// [fileName] 文件名
   ///
   /// 返回构建好的文件 URL
@@ -691,7 +696,7 @@ class BackupService {
   /// 构建 WebDAV 目录 URL（用于 PROPFIND 列出文件）
   ///
   /// [baseUrl] WebDAV 服务器基础 URL
-  /// [backupDir] 存储路径
+  /// [backupDir] 备份目录
   ///
   /// 返回构建好的目录 URL（确保以 / 结尾）
   String buildWebDavDirUrl(String baseUrl, String backupDir) {
@@ -767,10 +772,10 @@ class BackupService {
 
       /// 过滤并排序备份文件
       final backupFiles =
-          files
-              .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
-              .toList()
-            ..sort((a, b) => b.compareTo(a));
+      files
+          .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+          .toList()
+        ..sort((a, b) => b.compareTo(a));
 
       /// 删除所有备份文件
       for (final file in backupFiles) {

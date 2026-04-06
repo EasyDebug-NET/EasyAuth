@@ -54,7 +54,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   Future<void> _saveAccount() async {
     if (_formKey.currentState!.validate()) {
       final account = TwoFactorAccount.name(
-        0,
+        '',
         _issuerController.text.isEmpty ? null : _issuerController.text,
         _nameController.text.isEmpty ? null : _nameController.text,
         _secretController.text,

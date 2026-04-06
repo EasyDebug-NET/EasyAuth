@@ -49,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.didChangeDependencies();
     // 接收来自 home_screen 的参数
     final arguments =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (arguments != null) {
       _fromCloudIcon = arguments['fromCloudIcon'] ?? false;
     }
@@ -415,11 +415,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         await _backupService.restoreBackup(_setting);
         if (mounted) {
-          // 优化SnackBar样式，使用floating行为提升用户体验
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('恢复完成'),
-              behavior: SnackBarBehavior.floating,
+              content: Text('恢复成功'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
           );
         }
@@ -452,7 +452,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                 ],
               ),
-              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
               duration: const Duration(seconds: 5),
             ),
           );
@@ -530,212 +530,212 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: _isLoading
           ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('正在执行操作...'),
-                  const SizedBox(height: 8),
-                  const Text('请稍候', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+            ),
+            const SizedBox(height: 16),
+            const Text('正在执行操作...'),
+            const SizedBox(height: 8),
+            const Text('请稍候', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      )
           : SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _buildSection('备份设置', [
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _showBackupConfigDialog,
-                            style: StyleUtils.primaryButtonStyleLeft(context),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('备份参数配置'),
-                                Text(
-                                  _getBackupConfigStatusText(),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                                ),
-                              ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildSection('备份设置', [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _showBackupConfigDialog,
+                      style: StyleUtils.primaryButtonStyleLeft(context),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('备份参数配置'),
+                          Text(
+                            _getBackupConfigStatusText(),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        if (_setting.backupSetting.type != BackupType.off) ...[
-                          _buildButton('备份到远端', _performBackup, primaryColor),
-                          const SizedBox(height: 16),
-                          _buildButton('从远端恢复', _restoreBackup, primaryColor),
-                          const SizedBox(height: 16),
-                          _buildButton(
-                            '管理远端备份',
-                            _manageRemoteBackup,
-                            primaryColor,
-                          ),
                         ],
-                      ]),
+                      ),
                     ),
-                    // 添加分割线
-                    Divider(color: Colors.grey[200], height: 1),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _buildSection('安全设置', [
-                        Container(
-                          height: 50,
-                          decoration: StyleUtils.lockContainerStyle(context),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Text(
-                                          '应用锁',
-                                          style: StyleUtils.lockTextStyle,
-                                        ),
-                                        if (!_isBiometricAvailable)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              left: 8,
-                                            ),
-                                            child: Text(
-                                              '设备不支持生物识别',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.yellowAccent,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    Switch(
-                                      value:
-                                          _setting
-                                              .securitySetting
-                                              .appLockEnabled ==
-                                          1,
-                                      onChanged: _handleAppLockToggle,
-                                      activeThumbColor: Colors.white,
-                                      inactiveThumbColor: Colors.white,
-                                      activeTrackColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      inactiveTrackColor: Colors.grey[300],
-                                      trackOutlineColor:
-                                          WidgetStateProperty.resolveWith((
-                                            states,
-                                          ) {
-                                            if (states.contains(
-                                              WidgetState.selected,
-                                            )) {
-                                              return Colors.transparent;
-                                            }
-                                            return Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .withValues(alpha: 0.5);
-                                          }),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          height: 50,
-                          decoration: StyleUtils.lockContainerStyle(context),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Text(
-                                          '截屏锁',
-                                          style: StyleUtils.lockTextStyle,
-                                        ),
-                                      ],
-                                    ),
-                                    Switch(
-                                      value:
-                                          _setting
-                                              .securitySetting
-                                              .screenshotLockEnabled ==
-                                          1,
-                                      onChanged: (value) async {
-                                        setState(() {
-                                          _setting = _setting.copyWith(
-                                            securitySetting: _setting
-                                                .securitySetting
-                                                .copyWith(
-                                                  screenshotLockEnabled: value
-                                                      ? 1
-                                                      : 0,
-                                                ),
-                                          );
-                                        });
-                                        await _saveConfig();
-                                        // 立即更新截屏锁状态
-                                        await _updateScreenshotLock(value);
-                                      },
-                                      activeThumbColor: Colors.white,
-                                      inactiveThumbColor: Colors.white,
-                                      activeTrackColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      inactiveTrackColor: Colors.grey[300],
-                                      trackOutlineColor:
-                                          WidgetStateProperty.resolveWith((
-                                            states,
-                                          ) {
-                                            if (states.contains(
-                                              WidgetState.selected,
-                                            )) {
-                                              return Colors.transparent;
-                                            }
-                                            return Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .withValues(alpha: 0.5);
-                                          }),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                            ],
-                          ),
-                        ),
-                      ]),
+                  ),
+                  const SizedBox(height: 16),
+
+                  if (_setting.backupSetting.type != BackupType.off) ...[
+                    _buildButton('备份到远端', _performBackup, primaryColor),
+                    const SizedBox(height: 16),
+                    _buildButton('从远端恢复', _restoreBackup, primaryColor),
+                    const SizedBox(height: 16),
+                    _buildButton(
+                      '管理远端备份',
+                      _manageRemoteBackup,
+                      primaryColor,
                     ),
                   ],
-                ),
+                ]),
               ),
-            ),
+              // 添加分割线
+              Divider(color: Colors.grey[200], height: 1),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildSection('安全设置', [
+                  Container(
+                    height: 50,
+                    decoration: StyleUtils.lockContainerStyle(context),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    '应用锁',
+                                    style: StyleUtils.lockTextStyle,
+                                  ),
+                                  if (!_isBiometricAvailable)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: 8,
+                                      ),
+                                      child: Text(
+                                        '设备不支持生物识别',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.yellowAccent,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              Switch(
+                                value:
+                                _setting
+                                    .securitySetting
+                                    .appLockEnabled ==
+                                    1,
+                                onChanged: _handleAppLockToggle,
+                                activeThumbColor: Colors.white,
+                                inactiveThumbColor: Colors.white,
+                                activeTrackColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                inactiveTrackColor: Colors.grey[300],
+                                trackOutlineColor:
+                                WidgetStateProperty.resolveWith((
+                                    states,
+                                    ) {
+                                  if (states.contains(
+                                    WidgetState.selected,
+                                  )) {
+                                    return Colors.transparent;
+                                  }
+                                  return Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.5);
+                                }),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    height: 50,
+                    decoration: StyleUtils.lockContainerStyle(context),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    '截屏锁',
+                                    style: StyleUtils.lockTextStyle,
+                                  ),
+                                ],
+                              ),
+                              Switch(
+                                value:
+                                _setting
+                                    .securitySetting
+                                    .screenshotLockEnabled ==
+                                    1,
+                                onChanged: (value) async {
+                                  setState(() {
+                                    _setting = _setting.copyWith(
+                                      securitySetting: _setting
+                                          .securitySetting
+                                          .copyWith(
+                                        screenshotLockEnabled: value
+                                            ? 1
+                                            : 0,
+                                      ),
+                                    );
+                                  });
+                                  await _saveConfig();
+                                  // 立即更新截屏锁状态
+                                  await _updateScreenshotLock(value);
+                                },
+                                activeThumbColor: Colors.white,
+                                inactiveThumbColor: Colors.white,
+                                activeTrackColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                inactiveTrackColor: Colors.grey[300],
+                                trackOutlineColor:
+                                WidgetStateProperty.resolveWith((
+                                    states,
+                                    ) {
+                                  if (states.contains(
+                                    WidgetState.selected,
+                                  )) {
+                                    return Colors.transparent;
+                                  }
+                                  return Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.5);
+                                }),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -869,13 +869,13 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
           files = files
               .where(
                 (file) =>
-                    file.startsWith(_config.backupSetting.s3Config.backupDir),
-              )
+                file.startsWith(_config.backupSetting.s3Config.backupDir),
+          )
               .map(
                 (file) => file
-                    .substring(_config.backupSetting.s3Config.backupDir.length)
-                    .replaceFirst(RegExp(r'^/'), ''),
-              )
+                .substring(_config.backupSetting.s3Config.backupDir.length)
+                .replaceFirst(RegExp(r'^/'), ''),
+          )
               .toList();
         }
       } else {
@@ -886,34 +886,34 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
       final backupFiles = files
           .where((file) => file.startsWith('backup_') && file.endsWith('.zip'))
           .map((file) {
-            final timestamp = file
-                .replaceAll('backup_', '')
-                .replaceAll('.zip', '');
-            DateTime? dateTime;
-            try {
-              // 解析时间戳格式: YYYYMMDD_HHMMSS
-              if (timestamp.length >= 14 && timestamp.contains('_')) {
-                final parts = timestamp.split('_');
-                if (parts.length == 2) {
-                  final date = parts[0];
-                  final time = parts[1];
-                  if (date.length == 8 && time.length == 6) {
-                    dateTime = DateTime(
-                      int.parse(date.substring(0, 4)),
-                      int.parse(date.substring(4, 6)),
-                      int.parse(date.substring(6, 8)),
-                      int.parse(time.substring(0, 2)),
-                      int.parse(time.substring(2, 4)),
-                      int.parse(time.substring(4, 6)),
-                    );
-                  }
-                }
+        final timestamp = file
+            .replaceAll('backup_', '')
+            .replaceAll('.zip', '');
+        DateTime? dateTime;
+        try {
+          // 解析时间戳格式: YYYYMMDD_HHMMSS
+          if (timestamp.length >= 14 && timestamp.contains('_')) {
+            final parts = timestamp.split('_');
+            if (parts.length == 2) {
+              final date = parts[0];
+              final time = parts[1];
+              if (date.length == 8 && time.length == 6) {
+                dateTime = DateTime(
+                  int.parse(date.substring(0, 4)),
+                  int.parse(date.substring(4, 6)),
+                  int.parse(date.substring(6, 8)),
+                  int.parse(time.substring(0, 2)),
+                  int.parse(time.substring(2, 4)),
+                  int.parse(time.substring(4, 6)),
+                );
               }
-            } catch (e) {
-              dateTime = null;
             }
-            return BackupFile(name: file, dateTime: dateTime);
-          })
+          }
+        } catch (e) {
+          dateTime = null;
+        }
+        return BackupFile(name: file, dateTime: dateTime);
+      })
           .toList();
 
       // 按时间降序排序
@@ -1032,10 +1032,10 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
           if (_config.backupSetting.s3Config.backupDir.isNotEmpty) {
             if (_config.backupSetting.s3Config.backupDir.endsWith('/')) {
               objectKey =
-                  '${_config.backupSetting.s3Config.backupDir}$fileName';
+              '${_config.backupSetting.s3Config.backupDir}$fileName';
             } else {
               objectKey =
-                  '${_config.backupSetting.s3Config.backupDir}/$fileName';
+              '${_config.backupSetting.s3Config.backupDir}/$fileName';
             }
           }
           await S3Utils.deleteFile(
@@ -1231,13 +1231,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
     // 如果用户已经配置过（其他字段有值），则尊重用户的设置，即使backupDir为空
     bool isWebDavFirstTimeSetup =
         _config.backupSetting.webDavConfig.url.isEmpty &&
-        _config.backupSetting.webDavConfig.username.isEmpty &&
-        _config.backupSetting.webDavConfig.password.isEmpty;
+            _config.backupSetting.webDavConfig.username.isEmpty &&
+            _config.backupSetting.webDavConfig.password.isEmpty;
 
     _webDavBackupDirController = TextEditingController(
       text:
-          (isWebDavFirstTimeSetup &&
-              _config.backupSetting.webDavConfig.backupDir.isEmpty)
+      (isWebDavFirstTimeSetup &&
+          _config.backupSetting.webDavConfig.backupDir.isEmpty)
           ? 'EasyAuth'
           : _config.backupSetting.webDavConfig.backupDir,
     );
@@ -1265,13 +1265,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
     // 如果用户已经配置过（其他字段有值），则尊重用户的设置，即使backupDir为空
     bool isFirstTimeSetup =
         _config.backupSetting.s3Config.endpoint.isEmpty &&
-        _config.backupSetting.s3Config.accessKeyId.isEmpty &&
-        _config.backupSetting.s3Config.secretAccessKey.isEmpty &&
-        _config.backupSetting.s3Config.bucketName.isEmpty;
+            _config.backupSetting.s3Config.accessKeyId.isEmpty &&
+            _config.backupSetting.s3Config.secretAccessKey.isEmpty &&
+            _config.backupSetting.s3Config.bucketName.isEmpty;
 
     _s3BackupDirController = TextEditingController(
       text:
-          (isFirstTimeSetup && _config.backupSetting.s3Config.backupDir.isEmpty)
+      (isFirstTimeSetup && _config.backupSetting.s3Config.backupDir.isEmpty)
           ? 'EasyAuth'
           : _config.backupSetting.s3Config.backupDir,
     );
@@ -1385,7 +1385,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   onChanged: (value) {
                     if (value != null) {
                       final newType = BackupType.values.firstWhere(
-                        (e) => e.toString().split('.').last == value,
+                            (e) => e.toString().split('.').last == value,
                       );
                       setState(() {
                         _config = _config.copyWith(
@@ -1727,12 +1727,12 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                               newBackupSetting = _config.backupSetting.copyWith(
                                 webDavConfig: _config.backupSetting.webDavConfig
                                     .copyWith(
-                                      url: _webDavUrlController.text,
-                                      backupDir:
-                                          _webDavBackupDirController.text,
-                                      username: _webDavUsernameController.text,
-                                      password: _webDavPasswordController.text,
-                                    ),
+                                  url: _webDavUrlController.text,
+                                  backupDir:
+                                  _webDavBackupDirController.text,
+                                  username: _webDavUsernameController.text,
+                                  password: _webDavPasswordController.text,
+                                ),
                                 s3Config: const S3Config(
                                   endpoint: '',
                                   accessKeyId: '',
@@ -1753,36 +1753,36 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                                 ),
                                 s3Config: _config.backupSetting.s3Config
                                     .copyWith(
-                                      endpoint: _s3EndpointController.text,
-                                      accessKeyId:
-                                          _s3AccessKeyIdController.text,
-                                      secretAccessKey:
-                                          _s3SecretAccessKeyController.text,
-                                      bucketName: _s3BucketNameController.text,
-                                      backupDir: _s3BackupDirController.text,
-                                    ),
+                                  endpoint: _s3EndpointController.text,
+                                  accessKeyId:
+                                  _s3AccessKeyIdController.text,
+                                  secretAccessKey:
+                                  _s3SecretAccessKeyController.text,
+                                  bucketName: _s3BucketNameController.text,
+                                  backupDir: _s3BackupDirController.text,
+                                ),
                               );
                             } else {
                               // 默认情况，保持原有逻辑
                               newBackupSetting = _config.backupSetting.copyWith(
                                 webDavConfig: _config.backupSetting.webDavConfig
                                     .copyWith(
-                                      url: _webDavUrlController.text,
-                                      backupDir:
-                                          _webDavBackupDirController.text,
-                                      username: _webDavUsernameController.text,
-                                      password: _webDavPasswordController.text,
-                                    ),
+                                  url: _webDavUrlController.text,
+                                  backupDir:
+                                  _webDavBackupDirController.text,
+                                  username: _webDavUsernameController.text,
+                                  password: _webDavPasswordController.text,
+                                ),
                                 s3Config: _config.backupSetting.s3Config
                                     .copyWith(
-                                      endpoint: _s3EndpointController.text,
-                                      accessKeyId:
-                                          _s3AccessKeyIdController.text,
-                                      secretAccessKey:
-                                          _s3SecretAccessKeyController.text,
-                                      bucketName: _s3BucketNameController.text,
-                                      backupDir: _s3BackupDirController.text,
-                                    ),
+                                  endpoint: _s3EndpointController.text,
+                                  accessKeyId:
+                                  _s3AccessKeyIdController.text,
+                                  secretAccessKey:
+                                  _s3SecretAccessKeyController.text,
+                                  bucketName: _s3BucketNameController.text,
+                                  backupDir: _s3BackupDirController.text,
+                                ),
                               );
                             }
 

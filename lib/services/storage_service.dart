@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/two_factor_account.dart';
 
-/// 数据库存储服务 - 单例模式
+/// 安全存储服务 - 单例模式
 class StorageService {
   static final StorageService _instance = StorageService._internal();
 
@@ -14,85 +15,86 @@ class StorageService {
 
   StorageService._internal();
 
-  static Database? _database;
-
-  /// 获取数据库实例
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
-  }
-
-  /// 初始化数据库
-  Future<Database> _initDatabase() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'easyauth.db');
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
-  }
-
-  /// 创建数据库表
-  Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE two_factor_accounts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        issuer TEXT,
-        account_name TEXT,
-        secret TEXT NOT NULL,
-        period INTEGER NOT NULL DEFAULT 30,
-        algorithm TEXT NOT NULL DEFAULT 'SHA1',
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      )
-    ''');
-  }
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  static const String _accountsIndexKey = 'account_ids';
+  static const String _accountPrefix = 'account_';
+  final Uuid _uuid = const Uuid();
 
   /// 插入账户
-  Future<int> insertAccount(TwoFactorAccount account) async {
+  Future<String> insertAccount(TwoFactorAccount account) async {
     try {
-      final db = await database;
-      return await db.insert('two_factor_accounts', {
-        'issuer': account.issuer,
-        'account_name': account.name,
-        'secret': account.secret,
-        'period': account.period,
-        'algorithm': account.algorithm,
-        'created_at': account.createdAt.millisecondsSinceEpoch,
-        'updated_at': account.updatedAt.millisecondsSinceEpoch,
-      });
+      // 生成 UUID
+      final id = _uuid.v4();
+
+      // 创建带 ID 的账户
+      final accountWithId = TwoFactorAccount.name(
+        id,
+        account.issuer,
+        account.name,
+        account.secret,
+        account.period,
+        account.algorithm,
+        account.createdAt,
+        account.updatedAt,
+      );
+
+      // 读取当前索引
+      final indexJson = await _secureStorage.read(key: _accountsIndexKey);
+      final ids = indexJson != null
+          ? (jsonDecode(indexJson) as List).cast<String>()
+          : <String>[];
+
+      // 写入账户数据
+      await _secureStorage.write(
+        key: '$_accountPrefix$id',
+        value: jsonEncode(accountWithId.toJson()),
+      );
+
+      // 更新索引
+      ids.add(id);
+      await _secureStorage.write(
+        key: _accountsIndexKey,
+        value: jsonEncode(ids),
+      );
+
+      return id;
     } catch (e) {
       print('插入账户失败: $e');
-      return -1;
+      return '';
     }
   }
 
   /// 获取所有账户
   Future<List<TwoFactorAccount>> getAllAccounts() async {
     try {
-      final db = await database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        'two_factor_accounts',
-        orderBy: 'created_at DESC',
-      );
+      // 读取索引
+      final indexJson = await _secureStorage.read(key: _accountsIndexKey);
+      if (indexJson == null) return [];
 
-      return List.generate(maps.length, (i) {
-        try {
-          return TwoFactorAccount.name(
-            maps[i]['id'] as int,
-            maps[i]['issuer'] as String?,
-            maps[i]['account_name'] as String?,
-            maps[i]['secret'] as String,
-            maps[i]['period'] as int,
-            maps[i]['algorithm'] as String,
-            DateTime.fromMillisecondsSinceEpoch(maps[i]['created_at'] as int),
-            DateTime.fromMillisecondsSinceEpoch(maps[i]['updated_at'] as int),
-          );
-        } catch (e) {
-          print('解析账户数据失败: $e');
-          // 跳过有问题的账户，确保其他账户正常加载
-          return null;
+      // 解析索引
+      final ids = (jsonDecode(indexJson) as List).cast<String>();
+
+      // 读取每个账户
+      final accounts = <TwoFactorAccount>[];
+      for (final id in ids) {
+        final accountJson = await _secureStorage.read(
+          key: '$_accountPrefix$id',
+        );
+        if (accountJson != null) {
+          try {
+            final accountData = jsonDecode(accountJson);
+            accounts.add(TwoFactorAccount.fromJson(accountData));
+          } catch (e) {
+            print('解析账户数据失败: $e');
+            // 跳过有问题的账户
+            continue;
+          }
         }
-      }).where((account) => account != null).cast<TwoFactorAccount>().toList();
+      }
+
+      // 按创建时间降序排序
+      accounts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return accounts;
     } catch (e) {
       print('获取账户列表失败: $e');
       return [];
@@ -100,27 +102,13 @@ class StorageService {
   }
 
   /// 根据ID获取账户
-  Future<TwoFactorAccount?> getAccountById(int id) async {
+  Future<TwoFactorAccount?> getAccountById(String id) async {
     try {
-      final db = await database;
-      final List<Map<String, dynamic>> maps = await db.query(
-        'two_factor_accounts',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      final accountJson = await _secureStorage.read(key: '$_accountPrefix$id');
+      if (accountJson == null) return null;
 
-      if (maps.isEmpty) return null;
-
-      return TwoFactorAccount.name(
-        maps[0]['id'] as int,
-        maps[0]['issuer'] as String?,
-        maps[0]['account_name'] as String?,
-        maps[0]['secret'] as String,
-        maps[0]['period'] as int,
-        maps[0]['algorithm'] as String,
-        DateTime.fromMillisecondsSinceEpoch(maps[0]['created_at'] as int),
-        DateTime.fromMillisecondsSinceEpoch(maps[0]['updated_at'] as int),
-      );
+      final accountData = jsonDecode(accountJson);
+      return TwoFactorAccount.fromJson(accountData);
     } catch (e) {
       print('获取账户失败: $e');
       return null;
@@ -130,17 +118,31 @@ class StorageService {
   /// 更新账户（只更新issuer和accountName）
   Future<int> updateAccount(TwoFactorAccount account) async {
     try {
-      final db = await database;
-      return await db.update(
-        'two_factor_accounts',
-        {
-          'issuer': account.issuer,
-          'account_name': account.name,
-          'updated_at': DateTime.now().millisecondsSinceEpoch,
-        },
-        where: 'id = ?',
-        whereArgs: [account.id],
+      // 检查账户是否存在
+      final indexJson = await _secureStorage.read(key: _accountsIndexKey);
+      if (indexJson == null) return 0;
+
+      final ids = (jsonDecode(indexJson) as List).cast<String>();
+      if (!ids.contains(account.id)) return 0;
+
+      // 更新账户数据
+      final updatedAccount = TwoFactorAccount.name(
+        account.id,
+        account.issuer,
+        account.name,
+        account.secret,
+        account.period,
+        account.algorithm,
+        account.createdAt,
+        DateTime.now(), // 更新时间
       );
+
+      await _secureStorage.write(
+        key: '$_accountPrefix${account.id}',
+        value: jsonEncode(updatedAccount.toJson()),
+      );
+
+      return 1;
     } catch (e) {
       print('更新账户失败: $e');
       return 0;
@@ -148,23 +150,52 @@ class StorageService {
   }
 
   /// 删除账户
-  Future<int> deleteAccount(int id) async {
+  Future<int> deleteAccount(String id) async {
     try {
-      final db = await database;
-      return await db.delete(
-        'two_factor_accounts',
-        where: 'id = ?',
-        whereArgs: [id],
+      // 读取当前索引
+      final indexJson = await _secureStorage.read(key: _accountsIndexKey);
+      if (indexJson == null) return 0;
+
+      final ids = (jsonDecode(indexJson) as List).cast<String>();
+
+      // 检查 ID 是否存在
+      if (!ids.contains(id)) return 0;
+
+      // 删除账户数据
+      await _secureStorage.delete(key: '$_accountPrefix$id');
+
+      // 更新索引
+      ids.remove(id);
+      await _secureStorage.write(
+        key: _accountsIndexKey,
+        value: jsonEncode(ids),
       );
+
+      return 1;
     } catch (e) {
       print('删除账户失败: $e');
       return 0;
     }
   }
 
-  /// 关闭数据库
-  Future<void> close() async {
-    final db = await database;
-    await db.close();
+  /// 清空所有账户
+  Future<void> clearAllAccounts() async {
+    try {
+      // 读取索引
+      final indexJson = await _secureStorage.read(key: _accountsIndexKey);
+      if (indexJson != null) {
+        final ids = (jsonDecode(indexJson) as List).cast<String>();
+
+        // 删除每个账户
+        for (final id in ids) {
+          await _secureStorage.delete(key: '$_accountPrefix$id');
+        }
+
+        // 清空索引
+        await _secureStorage.delete(key: _accountsIndexKey);
+      }
+    } catch (e) {
+      print('清空账户失败: $e');
+    }
   }
 }

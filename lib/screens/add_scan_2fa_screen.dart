@@ -164,7 +164,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
       final normalizedSecret = secret.toUpperCase();
 
       final account = TwoFactorAccount.name(
-        0,
+        '',
         params['issuer'] as String?,
         params['name'] as String?,
         normalizedSecret,

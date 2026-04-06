@@ -46,10 +46,10 @@ class _HomeScreenState extends State<HomeScreen>
   List<TwoFactorAccount> _filteredAccounts = [];
 
   /// 账户ID到动态码的映射
-  final Map<int, String> _codes = {};
+  final Map<String, String> _codes = {};
 
   /// 账户ID到剩余秒数的映射
-  final Map<int, int> _remainingSeconds = {};
+  final Map<String, int> _remainingSeconds = {};
 
   /// 搜索控制器
   final TextEditingController _searchController = TextEditingController();
@@ -243,8 +243,6 @@ class _HomeScreenState extends State<HomeScreen>
     _searchDebounceTimer?.cancel();
     _iconBlinkTimer?.cancel();
     _searchController.dispose();
-    // 关闭数据库连接，防止内存泄漏
-    _storageService.close();
     super.dispose();
   }
 

@@ -1,7 +1,7 @@
 /// 2FA 账户数据模型
 class TwoFactorAccount {
-  /// 主键 ID，由数据库自动生成
-  final int id;
+  /// 主键 ID，使用 UUID
+  final String id;
 
   /// 发行者名称（如 Google、GitHub 等）
   final String? issuer;
@@ -40,4 +40,32 @@ class TwoFactorAccount {
   String get displayName => issuer != null && name != null
       ? "$issuer:$name"
       : issuer ?? name ?? "未命名账户";
+
+  /// 转换为 JSON Map
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'issuer': issuer,
+      'name': name,
+      'secret': secret,
+      'period': period,
+      'algorithm': algorithm,
+      'created_at': createdAt.millisecondsSinceEpoch,
+      'updated_at': updatedAt.millisecondsSinceEpoch,
+    };
+  }
+
+  /// 从 JSON Map 创建实例
+  factory TwoFactorAccount.fromJson(Map<String, dynamic> json) {
+    return TwoFactorAccount.name(
+      json['id'] as String,
+      json['issuer'] as String?,
+      json['name'] as String?,
+      json['secret'] as String,
+      json['period'] as int,
+      json['algorithm'] as String,
+      DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
+      DateTime.fromMillisecondsSinceEpoch(json['updated_at'] as int),
+    );
+  }
 }

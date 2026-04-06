@@ -149,7 +149,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
             }
 
             final account = TwoFactorAccount.name(
-              0,
+              '',
               issuer,
               name,
               secret,
