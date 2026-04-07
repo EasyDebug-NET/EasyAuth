@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../utils/qr_utils.dart';
+import '../utils/style_utils.dart';
 
 /// 导入验证码页面
 class Import2FaScreen extends StatefulWidget {
@@ -126,9 +127,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
 
     try {
       if (_selectedAccounts.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('请选择要导入的账户')));
+        StyleUtils.errorSnackBar(context, '请选择要导入的账户');
         return;
       }
 
@@ -169,22 +168,16 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
       if (!mounted) return;
 
       if (importedCount > 0) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('成功导入 $importedCount 个账户')));
+        StyleUtils.successSnackBar(context, '成功导入 $importedCount 个账户');
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('没有成功导入任何账户')));
+        StyleUtils.errorSnackBar(context, '没有成功导入任何账户');
       }
 
       // 直接返回首页
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('导入账户时出错')));
+        StyleUtils.errorSnackBar(context, '导入账户时出错');
       }
     }
   }
@@ -300,11 +293,11 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                         return CheckboxListTile(
                           title: Text(
                             displayName,
-                            style: TextStyle(fontSize: 16),
+                            style: StyleUtils.bodyTextStyle(context),
                           ),
                           subtitle: Text(
                             issuer ?? '',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                            style: StyleUtils.subtitleTextStyle(context),
                           ),
                           value: isSelected,
                           onChanged: (value) {
@@ -326,11 +319,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _importAccounts,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: themeColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
+                        style: StyleUtils.primaryButtonStyle(context),
                         child: const Text('导入'),
                       ),
                     ),

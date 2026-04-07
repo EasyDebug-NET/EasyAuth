@@ -38,51 +38,6 @@ class StyleUtils {
   /// 云图标
   static const Icon cloudIcon = Icon(Icons.cloud);
 
-  /// 箭头返回图标
-  static const Icon backIcon = Icon(Icons.arrow_back);
-
-  /// 手电筒图标
-  static const Icon flashIcon = Icon(Icons.flash_on);
-
-  /// 添加图标（白色）
-  static const Icon addIcon = Icon(Icons.add, color: Colors.white);
-
-  /// 二维码扫描图标
-  static const Icon qrScannerIcon = Icon(Icons.qr_code_scanner);
-
-  /// 键盘图标
-  static const Icon keyboardIcon = Icon(Icons.keyboard);
-
-  /// 交换图标
-  static const Icon swapIcon = Icon(Icons.swap_horiz);
-
-  /// 设置图标
-  static const Icon settingsIcon = Icon(Icons.settings);
-
-  /// 编辑图标
-  static const Icon editIcon = Icon(Icons.edit, color: Colors.white, size: 24);
-
-  /// 删除图标
-  static const Icon deleteIcon = Icon(
-    Icons.delete,
-    color: Colors.white,
-    size: 24,
-  );
-
-  /// 信息图标
-  static const Icon infoIcon = Icon(
-    Icons.info_outline,
-    size: 16,
-    color: Colors.grey,
-  );
-
-  /// 白色信息图标
-  static const Icon whiteInfoIcon = Icon(
-    Icons.info_outline,
-    size: 16,
-    color: Colors.white70,
-  );
-
   /// 锁容器样式
   static BoxDecoration lockContainerStyle(BuildContext context) {
     return BoxDecoration(
@@ -98,15 +53,98 @@ class StyleUtils {
     fontWeight: FontWeight.w500,
   );
 
-  /// 锁开关样式
-  static SwitchThemeData lockSwitchTheme(BuildContext context) {
-    return SwitchThemeData(
-      trackOutlineColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return Colors.transparent;
-        }
-        return Theme.of(context).colorScheme.primary.withAlpha(128);
-      }),
+  /// 次要按钮样式
+  static ButtonStyle secondaryButtonStyle(BuildContext context) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: Colors.grey[200],
+      foregroundColor: Theme.of(context).colorScheme.primary,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    );
+  }
+
+  /// 文本样式
+  static TextStyle titleTextStyle(BuildContext context) {
+    return Theme.of(
+      context,
+    ).textTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold);
+  }
+
+  static TextStyle subtitleTextStyle(BuildContext context) {
+    return Theme.of(
+      context,
+    ).textTheme.bodyMedium!.copyWith(color: Colors.grey[600]);
+  }
+
+  static TextStyle bodyTextStyle(BuildContext context) {
+    return Theme.of(context).textTheme.bodyMedium!;
+  }
+
+  /// 间距常量
+  static const EdgeInsets defaultPadding = EdgeInsets.all(16.0);
+  static const EdgeInsets screenPadding = EdgeInsets.all(24.0);
+  static const SizedBox smallSpacing = SizedBox(height: 8);
+  static const SizedBox mediumSpacing = SizedBox(height: 16);
+  static const SizedBox largeSpacing = SizedBox(height: 24);
+
+  /// 输入框样式
+  static InputDecoration inputDecoration(String labelText, String? hintText) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      border: const OutlineInputBorder(),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    );
+  }
+
+  /// 显示成功通知
+  static void successSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// 显示错误通知
+  static void errorSnackBar(
+    BuildContext context,
+    String message, [
+    String? details,
+  ]) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            if (details != null)
+              Text(
+                details,
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// 显示普通通知
+  static void normalSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.black,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 }

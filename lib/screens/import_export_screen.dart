@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/style_utils.dart';
 import 'export_2fa_screen.dart';
 import 'import_2fa_screen.dart';
 
@@ -25,18 +26,15 @@ class ImportExportScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               // 标题
-              const Text(
-                '导入/导出',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
+              Text('导入/导出', style: StyleUtils.titleTextStyle(context)),
+              StyleUtils.mediumSpacing,
               // 说明文字
-              const Text(
+              Text(
                 '您可以将自己的验证码转移到新设备中\n支持Google Authenticator的转移验证码',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: StyleUtils.subtitleTextStyle(context),
               ),
-              const SizedBox(height: 48),
+              StyleUtils.largeSpacing,
               // 导出按钮
               SizedBox(
                 width: double.infinity,
@@ -49,18 +47,11 @@ class ImportExportScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  style: StyleUtils.primaryButtonStyle(context),
                   child: const Text('导出验证码'),
                 ),
               ),
-              const SizedBox(height: 16),
+              StyleUtils.mediumSpacing,
               // 导入按钮
               SizedBox(
                 width: double.infinity,
@@ -73,14 +64,7 @@ class ImportExportScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  style: StyleUtils.primaryButtonStyle(context),
                   child: const Text('导入验证码'),
                 ),
               ),

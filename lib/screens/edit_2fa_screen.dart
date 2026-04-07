@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
+import '../utils/style_utils.dart';
 
 /// 修改2FA账户信息页面
 class Edit2FaScreen extends StatefulWidget {
@@ -63,13 +64,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
 
       if (mounted) {
         Navigator.pop(context, true);
-        // 优化SnackBar样式，使用floating行为提升用户体验
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('修改成功'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        StyleUtils.successSnackBar(context, '修改成功');
       }
     }
   }
@@ -87,30 +82,22 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
             children: [
               TextFormField(
                 controller: _issuerController,
-                decoration: InputDecoration(
-                  labelText: '发行者名称',
-                  hintText: '例如：Google',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: StyleUtils.inputDecoration('发行者名称', '例如：Google'),
               ),
-              SizedBox(height: 16),
+              StyleUtils.mediumSpacing,
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: '账户名称',
-                  hintText: '例如：user@example.com',
-                  border: OutlineInputBorder(),
+                decoration: StyleUtils.inputDecoration(
+                  '账户名称',
+                  '例如：user@example.com',
                 ),
               ),
               Spacer(),
-              SizedBox(height: 24),
+              StyleUtils.largeSpacing,
               ElevatedButton(
                 onPressed: _saveAccount,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text('保存'),
+                style: StyleUtils.primaryButtonStyle(context),
+                child: const Text('保存'),
               ),
             ],
           ),

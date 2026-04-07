@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
+import '../utils/style_utils.dart';
 
 /// 手动输入2FA秘钥添加账户页面
 class AddManual2FaScreen extends StatefulWidget {
@@ -68,13 +69,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
 
       if (mounted) {
         Navigator.pop(context, true);
-        // 优化SnackBar样式，使用floating行为提升用户体验
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('添加成功'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        StyleUtils.successSnackBar(context, '添加成功');
       }
     }
   }
@@ -92,29 +87,20 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
             children: [
               TextFormField(
                 controller: _issuerController,
-                decoration: InputDecoration(
-                  labelText: '发行者名称',
-                  hintText: '例如：Google',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: StyleUtils.inputDecoration('发行者名称', '例如：Google'),
               ),
-              SizedBox(height: 16),
+              StyleUtils.mediumSpacing,
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: '账户名称',
-                  hintText: '例如：user@example.com',
-                  border: OutlineInputBorder(),
+                decoration: StyleUtils.inputDecoration(
+                  '账户名称',
+                  '例如：user@example.com',
                 ),
               ),
-              SizedBox(height: 16),
+              StyleUtils.mediumSpacing,
               TextFormField(
                 controller: _secretController,
-                decoration: InputDecoration(
-                  labelText: '2FA秘钥',
-                  hintText: 'Base32',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: StyleUtils.inputDecoration('2FA秘钥', 'Base32'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return '请输入2FA秘钥';
@@ -125,13 +111,10 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 16),
+              StyleUtils.mediumSpacing,
               DropdownButtonFormField<String>(
                 initialValue: _secretType,
-                decoration: InputDecoration(
-                  labelText: '秘钥类型',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: StyleUtils.inputDecoration('秘钥类型', null),
                 items: const [
                   DropdownMenuItem(value: 'time', child: Text('基于时间')),
                   DropdownMenuItem(value: 'counter', child: Text('基于计数器')),
@@ -143,14 +126,11 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
                 },
               ),
               Spacer(),
-              SizedBox(height: 24),
+              StyleUtils.largeSpacing,
               ElevatedButton(
                 onPressed: _saveAccount,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text('保存'),
+                style: StyleUtils.primaryButtonStyle(context),
+                child: const Text('保存'),
               ),
             ],
           ),

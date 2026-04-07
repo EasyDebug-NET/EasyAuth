@@ -51,9 +51,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
       }).toList();
 
       if (selectedAccounts.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('请至少选择一个验证码')));
+        StyleUtils.errorSnackBar(context, '请至少选择一个验证码');
         return;
       }
 
@@ -62,9 +60,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
         _qrcodeData = migrationData;
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('生成二维码时出错')));
+      StyleUtils.errorSnackBar(context, '生成二维码时出错');
     }
   }
 
@@ -125,12 +121,12 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
                           });
                         },
                         title: Text(
-                          account.name ?? "未命名账户",
-                          style: TextStyle(fontSize: 16),
+                          account.displayName,
+                          style: StyleUtils.bodyTextStyle(context),
                         ),
                         subtitle: Text(
                           account.issuer ?? '',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          style: StyleUtils.subtitleTextStyle(context),
                         ),
                       );
                     },

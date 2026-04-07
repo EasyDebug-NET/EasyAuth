@@ -84,6 +84,9 @@ class _HomeScreenState extends State<HomeScreen>
   /// 防抖计时器
   Timer? _loadAccountsDebounceTimer;
 
+  /// 是否处于排序模式
+  bool _isSortingMode = false;
+
   @override
   void initState() {
     super.initState();
@@ -128,13 +131,7 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (e) {
       debugPrint('初始化失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('初始化失败: ${e.toString()}'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-          ),
-        );
+        StyleUtils.errorSnackBar(context, '初始化失败: ${e.toString()}');
       }
     }
   }
@@ -300,7 +297,7 @@ class _HomeScreenState extends State<HomeScreen>
     } else {
       _filteredAccounts = _accounts.where((account) {
         final code = _codes[account.id] ?? '';
-        return account.displayName.toLowerCase().contains(
+        return account.displayIssuerName.toLowerCase().contains(
               _searchText.toLowerCase(),
             ) ||
             code.contains(_searchText);
@@ -363,6 +360,11 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 IconButton(
+                  icon: Icon(_isSortingMode ? Icons.check : Icons.sort),
+                  onPressed: _toggleSortingMode,
+                  style: StyleUtils.iconButtonStyle(),
+                ),
+                IconButton(
                   icon: _buildCloudIcon(),
                   onPressed: _handleBackupButtonPressed,
                   style: StyleUtils.iconButtonStyle(),
@@ -371,157 +373,168 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
-        actions: const [],
       ),
       drawer: const _MenuDrawer(),
-      body: RefreshIndicator(
-        onRefresh: _loadAccounts,
-        child: _accounts.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.qr_code_scanner,
-                      size: 64,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '此处似乎尚无任何验证码',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '点击右下角 + 添加动态密码',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              )
-            : ListView.builder(
-                itemCount: _filteredAccounts.length,
-                itemBuilder: (context, index) {
-                  final account = _filteredAccounts[index];
-                  final code = _codes[account.id] ?? '';
-                  final remainingSeconds = _remainingSeconds[account.id] ?? 0;
-                  final progress = remainingSeconds / account.period;
-                  final themeColor = Theme.of(context).colorScheme.primary;
+      body: _isSortingMode
+          ? _buildSortableList()
+          : RefreshIndicator(
+              onRefresh: _loadAccounts,
+              child: _accounts.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.qr_code_scanner,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            '此处似乎尚无任何验证码',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '点击右下角 + 添加动态密码',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _filteredAccounts.length,
+                      itemBuilder: (context, index) {
+                        final account = _filteredAccounts[index];
+                        final code = _codes[account.id] ?? '';
+                        final remainingSeconds =
+                            _remainingSeconds[account.id] ?? 0;
+                        final progress = remainingSeconds / account.period;
+                        final themeColor = Theme.of(
+                          context,
+                        ).colorScheme.primary;
 
-                  return Dismissible(
-                    key: Key(account.id.toString()),
-                    direction: DismissDirection.horizontal,
-                    dismissThresholds: const {
-                      DismissDirection.startToEnd: 0.8,
-                      DismissDirection.endToStart: 0.8,
-                    },
-                    confirmDismiss: (direction) async {
-                      if (direction == DismissDirection.startToEnd) {
-                        await _showEditDialog(account);
-                        return false;
-                      } else {
-                        await _showDeleteConfirmDialog(account);
-                        return false;
-                      }
-                    },
-                    background: Container(
-                      color: Colors.blue,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(
-                        Icons.edit,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    secondaryBackground: Container(
-                      color: Colors.red,
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
-                      child: const Icon(
-                        Icons.delete,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 0,
-                              vertical: 8,
-                            ),
-                            title: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  account.name ?? "未命名账户",
-                                  style: const TextStyle(fontSize: 16),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                                if (account.issuer != null &&
-                                    account.issuer!.isNotEmpty)
-                                  Text(
-                                    account.issuer!,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                              ],
-                            ),
-                            subtitle: Text(
-                              code,
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2,
-                                color: themeColor,
-                              ),
-                            ),
-                            trailing: SizedBox(
-                              width: 48,
-                              height: 48,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  CircularProgressIndicator(
-                                    value: progress,
-                                    strokeWidth: 3,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      progress > 0.3
-                                          ? Colors.green
-                                          : Colors.orange,
-                                    ),
-                                    backgroundColor: Colors.grey[300],
-                                  ),
-                                  Text(
-                                    '${remainingSeconds}s',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: progress > 0.3
-                                          ? Colors.green
-                                          : Colors.orange,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        return Dismissible(
+                          key: Key(account.id.toString()),
+                          direction: DismissDirection.horizontal,
+                          dismissThresholds: const {
+                            DismissDirection.startToEnd: 0.8,
+                            DismissDirection.endToStart: 0.8,
+                          },
+                          confirmDismiss: (direction) async {
+                            if (direction == DismissDirection.startToEnd) {
+                              await _showEditDialog(account);
+                              return false;
+                            } else {
+                              await _showDeleteConfirmDialog(account);
+                              return false;
+                            }
+                          },
+                          background: Container(
+                            color: Colors.blue,
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.only(left: 20),
+                            child: const Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 24,
                             ),
                           ),
-                        ),
-                        const Divider(color: Color(0xFFE0E0E0), height: 1),
-                      ],
+                          secondaryBackground: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child: const Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 0,
+                                    vertical: 8,
+                                  ),
+                                  title: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        account.displayName,
+                                        style: const TextStyle(fontSize: 16),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                      if (account.issuer != null &&
+                                          account.issuer!.isNotEmpty)
+                                        Text(
+                                          account.issuer!,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                    ],
+                                  ),
+                                  subtitle: Text(
+                                    code,
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 2,
+                                      color: themeColor,
+                                    ),
+                                  ),
+                                  trailing: SizedBox(
+                                    width: 48,
+                                    height: 48,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        CircularProgressIndicator(
+                                          value: progress,
+                                          strokeWidth: 3,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                progress > 0.3
+                                                    ? Colors.green
+                                                    : Colors.orange,
+                                              ),
+                                          backgroundColor: Colors.grey[300],
+                                        ),
+                                        Text(
+                                          '${remainingSeconds}s',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: progress > 0.3
+                                                ? Colors.green
+                                                : Colors.orange,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const Divider(
+                                color: Color(0xFFE0E0E0),
+                                height: 1,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-      ),
+            ),
       floatingActionButton: Material(
         color: Theme.of(context).colorScheme.primary,
         shape: const CircleBorder(),
@@ -638,7 +651,7 @@ class _HomeScreenState extends State<HomeScreen>
         } catch (e) {
           // 单个账户生成失败，显示错误信息但不影响其他账户
           _codes[account.id] = 'ERROR';
-          debugPrint('生成动态码失败 - 账户 ${account.displayName}: $e');
+          debugPrint('生成动态码失败 - 账户 ${account.displayIssuerName}: $e');
         }
         _remainingSeconds[account.id] = remainingSeconds;
       }
@@ -657,7 +670,7 @@ class _HomeScreenState extends State<HomeScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('删除账户'),
-        content: Text('确定要删除账户 "${account.displayName}" 吗？'),
+        content: Text('确定要删除账户 "${account.displayIssuerName}" 吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -677,6 +690,88 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     return false;
+  }
+
+  /// 切换排序模式
+  void _toggleSortingMode() async {
+    if (_isSortingMode) {
+      // 保存排序结果
+      await _saveSortOrder();
+    } else {
+      setState(() {
+        _isSortingMode = true;
+      });
+    }
+  }
+
+  /// 保存排序顺序
+  Future<void> _saveSortOrder() async {
+    final newOrder = _filteredAccounts.map((account) => account.id).toList();
+    final success = await _storageService.updateAccountOrder(newOrder);
+    if (success) {
+      setState(() {
+        _isSortingMode = false;
+      });
+      StyleUtils.successSnackBar(context, '排序已保存');
+      // 重新加载账户以更新显示顺序
+      await _loadAccounts();
+    } else {
+      StyleUtils.errorSnackBar(context, '保存排序失败');
+    }
+  }
+
+  /// 构建可排序列表
+  Widget _buildSortableList() {
+    return ReorderableListView(
+      children: _filteredAccounts.map((account) {
+        return Container(
+          key: Key(account.id),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 0,
+                  vertical: 8,
+                ),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      account.displayName,
+                      style: const TextStyle(fontSize: 16),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    if (account.issuer != null && account.issuer!.isNotEmpty)
+                      Text(
+                        account.issuer!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                  ],
+                ),
+                trailing: const Icon(Icons.drag_handle),
+              ),
+              const Divider(color: Color(0xFFE0E0E0), height: 1),
+            ],
+          ),
+        );
+      }).toList(),
+      onReorder: (oldIndex, newIndex) {
+        setState(() {
+          if (newIndex > oldIndex) {
+            newIndex -= 1;
+          }
+          final account = _filteredAccounts.removeAt(oldIndex);
+          _filteredAccounts.insert(newIndex, account);
+        });
+      },
+    );
   }
 
   /// 处理备份按钮点击
@@ -706,15 +801,6 @@ class _HomeScreenState extends State<HomeScreen>
 
           _operationStatus = status == 'success' ? 1 : 2;
         });
-
-        // 不再重置状态，保持成功/失败状态
-        // Future.delayed(Duration(seconds: 3), () {
-        //   if (mounted) {
-        //     setState(() {
-        //       _operationStatus = 0;
-        //     });
-        //   }
-        // });
       }
     } else {
       // 如果备份类型不是“关闭”，则弹出菜单
@@ -750,13 +836,7 @@ class _HomeScreenState extends State<HomeScreen>
           try {
             await _backupService.performBackup(_setting!);
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('备份成功'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              StyleUtils.successSnackBar(context, '备份成功');
               setState(() {
                 _operationStatus = 1;
               });
@@ -776,13 +856,7 @@ class _HomeScreenState extends State<HomeScreen>
               if (e is Exception) {
                 errorMessage = '备份失败: ${e.toString().split(':').last.trim()}';
               }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(errorMessage),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 3),
-                ),
-              );
+              StyleUtils.errorSnackBar(context, errorMessage);
               setState(() {
                 _operationStatus = 2;
               });
@@ -838,13 +912,7 @@ class _HomeScreenState extends State<HomeScreen>
             try {
               await _backupService.restoreBackup(_setting!);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('恢复成功'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                StyleUtils.successSnackBar(context, '恢复成功');
                 setState(() {
                   _operationStatus = 1;
                 });
@@ -872,27 +940,7 @@ class _HomeScreenState extends State<HomeScreen>
                   errorMessage = '恢复失败: ${e.toString().split(':').last.trim()}';
                 }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(errorMessage),
-                        if (errorDetails != null)
-                          Text(
-                            errorDetails,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
-                            ),
-                          ),
-                      ],
-                    ),
-                    backgroundColor: Colors.red,
-                    duration: const Duration(seconds: 3),
-                  ),
-                );
+                StyleUtils.errorSnackBar(context, errorMessage, errorDetails);
                 setState(() {
                   _operationStatus = 2;
                 });

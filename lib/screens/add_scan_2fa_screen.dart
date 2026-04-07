@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../services/totp_service.dart';
+import '../utils/style_utils.dart';
 
 /// 扫描二维码添加2FA账户页面
 class AddScan2FaScreen extends StatefulWidget {
@@ -178,13 +179,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
 
       if (mounted) {
         Navigator.pop(context, true);
-        // 优化SnackBar样式，使用floating行为提升用户体验
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('添加成功'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        StyleUtils.successSnackBar(context, '添加成功');
       }
     } on FormatException catch (e) {
       // 格式错误，显示详细的错误信息

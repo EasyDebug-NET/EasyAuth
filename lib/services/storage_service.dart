@@ -92,8 +92,6 @@ class StorageService {
         }
       }
 
-      // 按创建时间降序排序
-      accounts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return accounts;
     } catch (e) {
       print('获取账户列表失败: $e');
@@ -196,6 +194,20 @@ class StorageService {
       }
     } catch (e) {
       print('清空账户失败: $e');
+    }
+  }
+
+  /// 更新账户顺序
+  Future<bool> updateAccountOrder(List<String> newOrder) async {
+    try {
+      await _secureStorage.write(
+        key: _accountsIndexKey,
+        value: jsonEncode(newOrder),
+      );
+      return true;
+    } catch (e) {
+      print('更新账户顺序失败: $e');
+      return false;
     }
   }
 }
