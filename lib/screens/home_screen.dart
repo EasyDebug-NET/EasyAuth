@@ -647,6 +647,7 @@ class _HomeScreenState extends State<HomeScreen>
           _codes[account.id] = TotpService.generateCode(
             secret: account.secret,
             period: account.period,
+            algorithm: account.algorithm,
           );
         } catch (e) {
           // 单个账户生成失败，显示错误信息但不影响其他账户

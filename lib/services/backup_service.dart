@@ -743,10 +743,14 @@ class BackupService {
         setting.backupSetting.s3Config.secretAccessKey,
       );
 
-      /// 过滤备份文件
-      final backupFiles = objects
-          .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
-          .toList();
+      /// 过滤备份文件（与 restoreBackup 保持一致，按 backupDir 过滤）
+      final backupDir = setting.backupSetting.s3Config.backupDir;
+      final backupFiles = objects.where((f) {
+        if (backupDir.isNotEmpty && !f.startsWith(backupDir)) {
+          return false;
+        }
+        return f.endsWith('.zip') && f.contains('backup_');
+      }).toList();
 
       return backupFiles.isNotEmpty;
     }

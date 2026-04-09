@@ -11,23 +11,15 @@ class TotpService {
   /// [secret] Base32编码的秘钥
   /// [period] 动态码更新周期，默认30秒
   /// [digits] 动态码位数，默认6位
+  /// [algorithm] 加密算法（SHA1、SHA256、SHA512），默认 SHA1
   /// [timestamp] 可选的时间戳，默认使用当前时间
-  ///
-  /// 执行步骤：
-  /// 1. 获取当前时间戳或使用指定时间戳
-  /// 2. 计算时间步数
-  /// 3. 将计数器转换为8字节的大端序字节数组
-  /// 4. 解码Base32秘钥
-  /// 5. 计算HMAC-SHA1
-  /// 6. 动态截取
-  /// 7. 计算动态码
-  /// 8. 格式化为指定位数的字符串
   ///
   /// 返回动态码字符串
   static String generateCode({
     required String secret,
     int period = 30,
     int digits = 6,
+    String algorithm = 'SHA1',
     int? timestamp,
   }) {
     try {
@@ -43,8 +35,11 @@ class TotpService {
       // 解码Base32秘钥
       final key = base32.decode(secret);
 
-      // 计算HMAC-SHA1
-      final hmac = Hmac(sha1, key);
+      // 根据算法选择对应的哈希函数
+      final hash = _getHash(algorithm);
+
+      // 计算HMAC
+      final hmac = Hmac(hash, key);
       final digest = hmac.convert(counterBytes);
 
       // 动态截取
@@ -76,6 +71,19 @@ class TotpService {
   static int getRemainingSeconds({int period = 30, int? timestamp}) {
     final time = timestamp ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
     return period - (time % period);
+  }
+
+  /// 根据算法名返回对应的哈希函数
+  static Hash _getHash(String algorithm) {
+    switch (algorithm.toUpperCase()) {
+      case 'SHA256':
+        return sha256;
+      case 'SHA512':
+        return sha512;
+      case 'SHA1':
+      default:
+        return sha1;
+    }
   }
 
   /// 将整数转换为8字节的大端序字节数组
