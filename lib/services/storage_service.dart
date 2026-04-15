@@ -36,6 +36,8 @@ class StorageService {
         account.algorithm,
         account.createdAt,
         account.updatedAt,
+        type: account.type,
+        counter: account.counter,
       );
 
       // 读取当前索引
@@ -133,6 +135,8 @@ class StorageService {
         account.algorithm,
         account.createdAt,
         DateTime.now(), // 更新时间
+        type: account.type,
+        counter: account.counter,
       );
 
       await _secureStorage.write(

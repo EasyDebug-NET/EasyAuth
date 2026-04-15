@@ -18,6 +18,12 @@ class TwoFactorAccount {
   /// 加密算法（SHA1、SHA256、SHA512）
   final String algorithm;
 
+  /// 认证类型：'totp' 基于时间，'hotp' 基于计数器
+  final String type;
+
+  /// HOTP 计数器当前值
+  final int counter;
+
   /// 账户创建时间
   final DateTime createdAt;
 
@@ -33,8 +39,16 @@ class TwoFactorAccount {
     this.period,
     this.algorithm,
     this.createdAt,
-    this.updatedAt,
-  );
+    this.updatedAt, {
+    this.type = 'totp',
+    this.counter = 0,
+  });
+
+  /// 是否为 TOTP 类型
+  bool get isTotp => type != 'hotp';
+
+  /// 是否为 HOTP 类型
+  bool get isHotp => type == 'hotp';
 
   /// 显示名称，格式为 "issuer:name" 或仅显示其中之一
   String get displayIssuerName => issuer != null && name != null
@@ -53,6 +67,8 @@ class TwoFactorAccount {
       'secret': secret,
       'period': period,
       'algorithm': algorithm,
+      'type': type,
+      'counter': counter,
       'created_at': createdAt.millisecondsSinceEpoch,
       'updated_at': updatedAt.millisecondsSinceEpoch,
     };
@@ -69,6 +85,8 @@ class TwoFactorAccount {
       json['algorithm'] as String,
       DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
       DateTime.fromMillisecondsSinceEpoch(json['updated_at'] as int),
+      type: json['type'] as String? ?? 'totp',
+      counter: json['counter'] as int? ?? 0,
     );
   }
 }

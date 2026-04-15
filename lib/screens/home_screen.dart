@@ -203,7 +203,9 @@ class _HomeScreenState extends State<HomeScreen>
                   newAccount.name == account.name &&
                   newAccount.secret == account.secret &&
                   newAccount.period == account.period &&
-                  newAccount.algorithm == account.algorithm,
+                  newAccount.algorithm == account.algorithm &&
+                  newAccount.type == account.type &&
+                  newAccount.counter == account.counter,
             ),
           )) {
         // 延迟更新 UI，让主线程有更多时间处理其他任务
@@ -493,36 +495,41 @@ class _HomeScreenState extends State<HomeScreen>
                                       color: themeColor,
                                     ),
                                   ),
-                                  trailing: SizedBox(
-                                    width: 48,
-                                    height: 48,
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        CircularProgressIndicator(
-                                          value: progress,
-                                          strokeWidth: 3,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                progress > 0.3
-                                                    ? Colors.green
-                                                    : Colors.orange,
+                                  trailing: account.isHotp
+                                      ? _buildHotpTrailing(account)
+                                      : SizedBox(
+                                          width: 48,
+                                          height: 48,
+                                          child: Stack(
+                                            alignment: Alignment.center,
+                                            children: [
+                                              CircularProgressIndicator(
+                                                value: progress,
+                                                strokeWidth: 3,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(
+                                                      progress > 0.3
+                                                          ? Colors.green
+                                                          : Colors.orange,
+                                                    ),
+                                                backgroundColor:
+                                                    Colors.grey[300],
                                               ),
-                                          backgroundColor: Colors.grey[300],
-                                        ),
-                                        Text(
-                                          '${remainingSeconds}s',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: progress > 0.3
-                                                ? Colors.green
-                                                : Colors.orange,
+                                              Text(
+                                                '${remainingSeconds}s',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: progress > 0.3
+                                                      ? Colors.green
+                                                      : Colors.orange,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
                                 ),
                               ),
                               const Divider(
@@ -626,6 +633,39 @@ class _HomeScreenState extends State<HomeScreen>
     return StyleUtils.cloudIcon;
   }
 
+  /// 构建 HOTP 账户的 trailing 控件（递增按钮）
+  Widget _buildHotpTrailing(TwoFactorAccount account) {
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: IconButton(
+        icon: const Icon(Icons.refresh, size: 22),
+        padding: EdgeInsets.zero,
+        tooltip: '递增计数器 (当前: ${account.counter})',
+        onPressed: () => _incrementCounter(account),
+      ),
+    );
+  }
+
+  /// 递增 HOTP 计数器并刷新验证码
+  Future<void> _incrementCounter(TwoFactorAccount account) async {
+    final newCounter = account.counter + 1;
+    final updatedAccount = TwoFactorAccount.name(
+      account.id,
+      account.issuer,
+      account.name,
+      account.secret,
+      account.period,
+      account.algorithm,
+      account.createdAt,
+      DateTime.now(),
+      type: account.type,
+      counter: newCounter,
+    );
+    await _storageService.updateAccount(updatedAccount);
+    await _loadAccounts();
+  }
+
   /// 更新所有账户的动态码和倒计时
   void _updateCodes() {
     // 只在账户列表不为空时更新
@@ -648,6 +688,7 @@ class _HomeScreenState extends State<HomeScreen>
             secret: account.secret,
             period: account.period,
             algorithm: account.algorithm,
+            counter: account.isHotp ? account.counter : null,
           );
         } catch (e) {
           // 单个账户生成失败，显示错误信息但不影响其他账户

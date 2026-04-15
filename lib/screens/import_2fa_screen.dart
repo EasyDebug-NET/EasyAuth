@@ -156,6 +156,8 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
               accountData['algorithm'] ?? 'SHA1',
               DateTime.now(),
               DateTime.now(),
+              type: accountData['type'] as String? ?? 'totp',
+              counter: accountData['counter'] as int? ?? 0,
             );
             await _storageService.insertAccount(account);
             importedCount++;

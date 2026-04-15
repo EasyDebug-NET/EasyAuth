@@ -539,7 +539,8 @@ class BackupService {
             'issuer': account.issuer ?? '',
             'algorithm': account.algorithm,
             'digits': 6,
-            'type': 'totp', // 目前只支持 TOTP
+            'type': account.type,
+            'counter': account.counter,
             'period': account.period,
           },
         )
@@ -646,6 +647,8 @@ class BackupService {
       final issuer = account['issuer'] as String?;
       final algorithm = account['algorithm'] as String? ?? 'SHA1';
       final period = account['period'] as int? ?? 30;
+      final type = account['type'] as String? ?? 'totp';
+      final counter = account['counter'] as int? ?? 0;
 
       if (secret == null || name == null) continue;
 
@@ -660,6 +663,8 @@ class BackupService {
         algorithm,
         DateTime.now(),
         DateTime.now(),
+        type: type,
+        counter: counter,
       );
 
       // 插入数据库

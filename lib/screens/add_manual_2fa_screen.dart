@@ -27,6 +27,9 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   /// 秘钥控制器
   final _secretController = TextEditingController();
 
+  /// 计数器控制器
+  final _counterController = TextEditingController(text: '0');
+
   /// 数据库服务
   final StorageService _storageService = StorageService();
 
@@ -38,6 +41,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
     _issuerController.dispose();
     _nameController.dispose();
     _secretController.dispose();
+    _counterController.dispose();
     super.dispose();
   }
 
@@ -54,15 +58,22 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   /// 保存账户
   Future<void> _saveAccount() async {
     if (_formKey.currentState!.validate()) {
+      final isHotp = _secretType == 'counter';
+      final counter = isHotp
+          ? (int.tryParse(_counterController.text) ?? 0)
+          : 0;
+
       final account = TwoFactorAccount.name(
         '',
         _issuerController.text.isEmpty ? null : _issuerController.text,
         _nameController.text.isEmpty ? null : _nameController.text,
         _secretController.text,
-        _secretType == 'time' ? 30 : 0,
+        30,
         'SHA1',
         DateTime.now(),
         DateTime.now(),
+        type: isHotp ? 'hotp' : 'totp',
+        counter: counter,
       );
 
       await _storageService.insertAccount(account);
@@ -125,6 +136,23 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
                   });
                 },
               ),
+              if (_secretType == 'counter') ...[
+                StyleUtils.mediumSpacing,
+                TextFormField(
+                  controller: _counterController,
+                  decoration: StyleUtils.inputDecoration('计数器初始值', '默认 0'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return '请输入计数器值';
+                    }
+                    if (int.tryParse(value) == null) {
+                      return '请输入有效的数字';
+                    }
+                    return null;
+                  },
+                ),
+              ],
               Spacer(),
               StyleUtils.largeSpacing,
               ElevatedButton(

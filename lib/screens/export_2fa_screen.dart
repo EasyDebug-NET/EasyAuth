@@ -80,12 +80,13 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
                   : (name.isNotEmpty ? name : issuer);
 
               return {
-                'type': 'totp',
-                'name': fullName,
                 'secret': account.secret,
+                'name': fullName,
                 'issuer': issuer,
                 'algorithm': account.algorithm,
                 'digits': 6,
+                'type': account.type,
+                'counter': account.counter,
                 'period': account.period,
               };
             } catch (e) {

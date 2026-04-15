@@ -4,15 +4,16 @@ import 'dart:typed_data';
 import 'package:base32/base32.dart';
 import 'package:crypto/crypto.dart';
 
-/// TOTP服务类，用于计算基于时间的一次性密码
+/// TOTP/HOTP 服务类，用于计算基于时间或计数器的一次性密码
 class TotpService {
-  /// 计算TOTP动态码
+  /// 计算动态码（TOTP 或 HOTP）
   ///
   /// [secret] Base32编码的秘钥
-  /// [period] 动态码更新周期，默认30秒
+  /// [period] TOTP 动态码更新周期，默认30秒
   /// [digits] 动态码位数，默认6位
   /// [algorithm] 加密算法（SHA1、SHA256、SHA512），默认 SHA1
-  /// [timestamp] 可选的时间戳，默认使用当前时间
+  /// [timestamp] TOTP 可选的时间戳，默认使用当前时间
+  /// [counter] HOTP 计数器值，传入时使用 HOTP 模式
   ///
   /// 返回动态码字符串
   static String generateCode({
@@ -21,48 +22,54 @@ class TotpService {
     int digits = 6,
     String algorithm = 'SHA1',
     int? timestamp,
+    int? counter,
   }) {
     try {
-      // 使用当前时间戳或指定时间戳
-      final time = timestamp ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      // 确定消息值：HOTP 模式用 counter，TOTP 模式用时间步数
+      final int message;
+      if (counter != null) {
+        message = counter;
+      } else {
+        final time = timestamp ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        message = time ~/ period;
+      }
 
-      // 计算时间步数
-      final counter = time ~/ period;
-
-      // 将计数器转换为8字节的大端序字节数组
-      final counterBytes = _intToBytes(counter);
-
-      // 解码Base32秘钥
-      final key = base32.decode(secret);
-
-      // 根据算法选择对应的哈希函数
-      final hash = _getHash(algorithm);
-
-      // 计算HMAC
-      final hmac = Hmac(hash, key);
-      final digest = hmac.convert(counterBytes);
-
-      // 动态截取
-      final offset = digest.bytes[digest.bytes.length - 1] & 0x0f;
-      final binary =
-          ((digest.bytes[offset] & 0x7f) << 24) |
-          ((digest.bytes[offset + 1] & 0xff) << 16) |
-          ((digest.bytes[offset + 2] & 0xff) << 8) |
-          (digest.bytes[offset + 3] & 0xff);
-
-      // 计算动态码
-      final otp = binary % pow(10, digits).toInt();
-
-      // 格式化为指定位数的字符串
-      return otp.toString().padLeft(digits, '0');
-      // 使用字符串插值优化性能
+      return _computeOtp(
+        secret: secret,
+        message: message,
+        digits: digits,
+        algorithm: algorithm,
+      );
     } catch (e) {
-      // 如果解码失败，返回错误占位符
       return 'ERROR';
     }
   }
 
-  /// 获取当前周期剩余秒数
+  /// 核心 OTP 计算逻辑：HMAC + 动态截取
+  static String _computeOtp({
+    required String secret,
+    required int message,
+    int digits = 6,
+    String algorithm = 'SHA1',
+  }) {
+    final messageBytes = _intToBytes(message);
+    final key = base32.decode(secret);
+    final hash = _getHash(algorithm);
+    final hmac = Hmac(hash, key);
+    final digest = hmac.convert(messageBytes);
+
+    final offset = digest.bytes[digest.bytes.length - 1] & 0x0f;
+    final binary =
+        ((digest.bytes[offset] & 0x7f) << 24) |
+        ((digest.bytes[offset + 1] & 0xff) << 16) |
+        ((digest.bytes[offset + 2] & 0xff) << 8) |
+        (digest.bytes[offset + 3] & 0xff);
+
+    final otp = binary % pow(10, digits).toInt();
+    return otp.toString().padLeft(digits, '0');
+  }
+
+  /// 获取 TOTP 当前周期剩余秒数（HOTP 不适用）
   ///
   /// [period] 动态码更新周期，默认30秒
   /// [timestamp] 可选的时间戳，默认使用当前时间
@@ -96,11 +103,11 @@ class TotpService {
     return bytes;
   }
 
-  /// 解析otpauth URI
+  /// 解析 otpauth URI
   ///
-  /// [uri] otpauth格式的URI
+  /// [uri] otpauth 格式的 URI（支持 TOTP 和 HOTP）
   ///
-  /// 返回包含issuer、name、secret、period、algorithm的Map
+  /// 返回包含 issuer、name、secret、period、algorithm、type、counter 的 Map
   static Map<String, dynamic> parseOtpAuthUri(String uri) {
     final result = <String, dynamic>{};
 
@@ -113,12 +120,13 @@ class TotpService {
     }
 
     // 检查类型
-    if (parsedUri.host != 'totp') {
-      throw Exception('Only TOTP is supported');
+    final type = parsedUri.host;
+    if (type != 'totp' && type != 'hotp') {
+      throw Exception('Unsupported OTP type: $type');
     }
 
     // 解析路径获取issuer和name
-    final path = Uri.decodeFull(parsedUri.path.substring(1)); // 移除开头的'/'并解码
+    final path = Uri.decodeFull(parsedUri.path.substring(1));
     final colonIndex = path.indexOf(':');
 
     if (colonIndex != -1) {
@@ -132,8 +140,16 @@ class TotpService {
     // 解析查询参数
     final params = parsedUri.queryParameters;
     result['secret'] = params['secret'] ?? '';
-    result['period'] = int.tryParse(params['period'] ?? '30') ?? 30;
     result['algorithm'] = params['algorithm'] ?? 'SHA1';
+    result['type'] = type;
+
+    if (type == 'totp') {
+      result['period'] = int.tryParse(params['period'] ?? '30') ?? 30;
+      result['counter'] = 0;
+    } else {
+      result['counter'] = int.tryParse(params['counter'] ?? '0') ?? 0;
+      result['period'] = 30;
+    }
 
     // 如果issuer在查询参数中，覆盖从路径解析的值
     if (params['issuer'] != null) {

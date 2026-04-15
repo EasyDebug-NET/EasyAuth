@@ -173,6 +173,8 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
         params['algorithm'] as String,
         DateTime.now(),
         DateTime.now(),
+        type: params['type'] as String? ?? 'totp',
+        counter: params['counter'] as int? ?? 0,
       );
 
       await _storageService.insertAccount(account);

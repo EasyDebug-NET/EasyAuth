@@ -58,6 +58,8 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
         _account!.algorithm,
         _account!.createdAt,
         DateTime.now(),
+        type: _account!.type,
+        counter: _account!.counter,
       );
 
       await _storageService.updateAccount(updatedAccount);
