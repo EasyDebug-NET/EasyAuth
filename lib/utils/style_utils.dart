@@ -8,7 +8,7 @@ class StyleUtils {
   static ButtonStyle primaryButtonStyle(BuildContext context) {
     return ElevatedButton.styleFrom(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      foregroundColor: Colors.white,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
       padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
@@ -18,7 +18,7 @@ class StyleUtils {
   static ButtonStyle primaryButtonStyleLeft(BuildContext context) {
     return ElevatedButton.styleFrom(
       backgroundColor: Theme.of(context).colorScheme.primary,
-      foregroundColor: Colors.white,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -47,16 +47,18 @@ class StyleUtils {
   }
 
   /// 锁文本样式
-  static const TextStyle lockTextStyle = TextStyle(
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: FontWeight.w500,
-  );
+  static TextStyle lockTextStyle(BuildContext context) {
+    return TextStyle(
+      color: Theme.of(context).colorScheme.onPrimary,
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+    );
+  }
 
   /// 次要按钮样式
   static ButtonStyle secondaryButtonStyle(BuildContext context) {
     return ElevatedButton.styleFrom(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       foregroundColor: Theme.of(context).colorScheme.primary,
       padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -73,7 +75,9 @@ class StyleUtils {
   static TextStyle subtitleTextStyle(BuildContext context) {
     return Theme.of(
       context,
-    ).textTheme.bodyMedium!.copyWith(color: Colors.grey[600]);
+    ).textTheme.bodyMedium!.copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
   }
 
   static TextStyle bodyTextStyle(BuildContext context) {
@@ -141,7 +145,7 @@ class StyleUtils {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).colorScheme.inverseSurface,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),

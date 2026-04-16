@@ -339,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen>
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(24),
             ),
             child: Row(
@@ -366,10 +366,13 @@ class _HomeScreenState extends State<HomeScreen>
                   onPressed: _toggleSortingMode,
                   style: StyleUtils.iconButtonStyle(),
                 ),
-                IconButton(
-                  icon: _buildCloudIcon(),
-                  onPressed: _handleBackupButtonPressed,
-                  style: StyleUtils.iconButtonStyle(),
+                Builder(
+                  builder: (buttonContext) => IconButton(
+                    icon: _buildCloudIcon(),
+                    onPressed: () =>
+                        _handleBackupButtonPressed(buttonContext),
+                    style: StyleUtils.iconButtonStyle(),
+                  ),
                 ),
               ],
             ),
@@ -515,7 +518,9 @@ class _HomeScreenState extends State<HomeScreen>
                                                           : Colors.orange,
                                                     ),
                                                 backgroundColor:
-                                                    Colors.grey[300],
+                                                    Theme.of(context)
+                                                        .colorScheme
+                                                        .surfaceContainerHighest,
                                               ),
                                               Text(
                                                 '${remainingSeconds}s',
@@ -532,8 +537,8 @@ class _HomeScreenState extends State<HomeScreen>
                                         ),
                                 ),
                               ),
-                              const Divider(
-                                color: Color(0xFFE0E0E0),
+                              Divider(
+                                color: Theme.of(context).dividerColor,
                                 height: 1,
                               ),
                             ],
@@ -548,7 +553,7 @@ class _HomeScreenState extends State<HomeScreen>
         elevation: 6,
         child: PopupMenuButton(
           icon: const Icon(Icons.add, color: Colors.white),
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           itemBuilder: (context) => [
             const PopupMenuItem(
               value: 'scan',
@@ -799,7 +804,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 trailing: const Icon(Icons.drag_handle),
               ),
-              const Divider(color: Color(0xFFE0E0E0), height: 1),
+              Divider(color: Theme.of(context).dividerColor, height: 1),
             ],
           ),
         );
@@ -817,7 +822,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// 处理备份按钮点击
-  Future<void> _handleBackupButtonPressed() async {
+  Future<void> _handleBackupButtonPressed(BuildContext buttonContext) async {
     // 检查备份配置
     if (_setting == null || _setting!.backupSetting.type == BackupType.off) {
       // 如果备份类型是“关闭”，则跳转到备份设置页面
@@ -845,10 +850,19 @@ class _HomeScreenState extends State<HomeScreen>
         });
       }
     } else {
-      // 如果备份类型不是“关闭”，则弹出菜单
+      // 从按钮位置动态计算菜单位置
+      final RenderBox box =
+          buttonContext.findRenderObject() as RenderBox;
+      final offset = box.localToGlobal(Offset.zero);
+      final buttonRect = offset & box.size;
+      final position = RelativeRect.fromRect(
+        buttonRect,
+        Offset.zero & MediaQuery.of(context).size,
+      );
+
       showMenu(
         context: context,
-        position: RelativeRect.fromLTRB(350, 80, 0, 0),
+        position: position,
         items: [
           PopupMenuItem(
             value: 'backup',
@@ -1042,7 +1056,7 @@ class _MenuDrawer extends StatelessWidget {
                   TextSpan(
                     text: 'Auth',
                     style: TextStyle(
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),

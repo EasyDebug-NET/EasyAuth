@@ -30,8 +30,6 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(title: const Text('关于'), centerTitle: true),
       body: Center(
@@ -45,7 +43,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withAlpha((0.1 * 255).round()),
+                    color: Theme.of(context).shadowColor.withAlpha(25),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),

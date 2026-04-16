@@ -408,7 +408,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 16),
                   const Text('正在执行操作...'),
                   const SizedBox(height: 8),
-                  const Text('请稍候', style: TextStyle(color: Colors.grey)),
+                  Text(
+                    '请稍候',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             )
@@ -457,7 +462,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ]),
                     ),
                     // 添加分割线
-                    Divider(color: Colors.grey[200], height: 1),
+                    Divider(
+                      color: Theme.of(context).dividerColor,
+                      height: 1,
+                    ),
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: _buildSection('安全设置', [
@@ -474,9 +482,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        const Text(
+                                        Text(
                                           '应用锁',
-                                          style: StyleUtils.lockTextStyle,
+                                          style: StyleUtils.lockTextStyle(context),
                                         ),
                                         if (!_isBiometricAvailable)
                                           Padding(
@@ -542,9 +550,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        const Text(
+                                        Text(
                                           '截屏锁',
-                                          style: StyleUtils.lockTextStyle,
+                                          style: StyleUtils.lockTextStyle(context),
                                         ),
                                       ],
                                     ),
@@ -934,9 +942,9 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
 
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        color: Colors.white,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        color: Theme.of(context).colorScheme.surface,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1505,9 +1513,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor,
+                      ),
                       borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey[50],
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerLow,
                     ),
                     child: Row(
                       children: [

@@ -275,7 +275,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
               ],
             )
           : Container(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: Column(
                 children: [
                   Expanded(
