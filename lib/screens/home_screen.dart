@@ -10,7 +10,7 @@ import '../models/two_factor_account.dart';
 import '../services/backup_service.dart';
 import '../services/security_service.dart';
 import '../services/storage_service.dart';
-import '../services/totp_service.dart';
+import '../services/otp_service.dart';
 import '../utils/exceptions.dart';
 import '../utils/style_utils.dart';
 
@@ -677,7 +677,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (_accounts.isEmpty) return;
 
     // 计算一次剩余秒数，因为所有账户的剩余秒数都是相同的（基于当前时间）
-    final remainingSeconds = TotpService.getRemainingSeconds(period: 30);
+    final remainingSeconds = OtpService.getRemainingSeconds(period: 30);
 
     // 检查是否需要更新，只有当剩余秒数变化时才更新
     if (_remainingSeconds.isNotEmpty &&
@@ -689,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       for (final account in _accounts) {
         try {
-          _codes[account.id] = TotpService.generateCode(
+          _codes[account.id] = OtpService.generateCode(
             secret: account.secret,
             period: account.period,
             algorithm: account.algorithm,

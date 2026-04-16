@@ -4,8 +4,8 @@ import 'dart:typed_data';
 import 'package:base32/base32.dart';
 import 'package:crypto/crypto.dart';
 
-/// TOTP/HOTP 服务类，用于计算基于时间或计数器的一次性密码
-class TotpService {
+/// OTP 服务类，用于计算基于时间 (TOTP) 或计数器 (HOTP) 的一次性密码
+class OtpService {
   /// 计算动态码（TOTP 或 HOTP）
   ///
   /// [secret] Base32编码的秘钥

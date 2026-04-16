@@ -3,7 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
-import '../services/totp_service.dart';
+import '../services/otp_service.dart';
 import '../utils/style_utils.dart';
 
 /// 扫描二维码添加2FA账户页面
@@ -148,7 +148,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
         throw FormatException('二维码格式错误，必须是 otpauth:// 格式的URI');
       }
 
-      final params = TotpService.parseOtpAuthUri(data);
+      final params = OtpService.parseOtpAuthUri(data);
 
       // 验证必要参数
       final secret = params['secret'] as String;
