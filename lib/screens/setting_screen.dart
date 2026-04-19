@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -554,6 +556,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           '截屏锁',
                                           style: StyleUtils.lockTextStyle(context),
                                         ),
+                                        if (!Platform.isAndroid)
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8),
+                                            child: Text(
+                                              '仅支持 Android',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.yellowAccent,
+                                              ),
+                                            ),
+                                          ),
                                       ],
                                     ),
                                     Switch(
@@ -562,7 +575,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                               .securitySetting
                                               .screenshotLockEnabled ==
                                           1,
-                                      onChanged: (value) async {
+                                      onChanged: Platform.isAndroid ? (value) async {
                                         setState(() {
                                           _setting = _setting.copyWith(
                                             securitySetting: _setting
@@ -577,7 +590,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         await _saveConfig();
                                         // 立即更新截屏锁状态
                                         await _updateScreenshotLock(value);
-                                      },
+                                      } : null,
                                       activeThumbColor: Colors.white,
                                       inactiveThumbColor: Colors.white,
                                       activeTrackColor: Theme.of(
@@ -1254,8 +1267,6 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                             type: newType,
                           ),
                         );
-                        // 更新控制器的值
-                        _initControllers();
                       });
                     }
                   },

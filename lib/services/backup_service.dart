@@ -25,7 +25,7 @@ class BackupService {
   BackupService._internal();
 
   final StorageService _storageService = StorageService();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage = sharedSecureStorage;
 
   /// 生成备份密码
   ///

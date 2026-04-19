@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 
 import '../models/two_factor_account.dart';
 
+const sharedSecureStorage = FlutterSecureStorage();
+
 /// 安全存储服务 - 单例模式
 class StorageService {
   static final StorageService _instance = StorageService._internal();
@@ -15,7 +17,7 @@ class StorageService {
 
   StorageService._internal();
 
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage = sharedSecureStorage;
   static const String _accountsIndexKey = 'account_ids';
   static const String _accountPrefix = 'account_';
   final Uuid _uuid = const Uuid();
