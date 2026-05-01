@@ -161,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() {
           _setting = _setting.copyWith(
             securitySetting: _setting.securitySetting.copyWith(
-              appLockEnabled: 1,
+              appLockEnabled: true,
             ),
           );
         });
@@ -182,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() {
           _setting = _setting.copyWith(
             securitySetting: _setting.securitySetting.copyWith(
-              appLockEnabled: 0,
+              appLockEnabled: false,
             ),
           );
         });
@@ -465,7 +465,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     // 添加分割线
                     Divider(
-                      color: Theme.of(context).dividerColor,
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? Colors.grey.shade200
+                          : Colors.grey.shade800,
                       height: 1,
                     ),
                     Padding(
@@ -507,8 +509,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       value:
                                           _setting
                                               .securitySetting
-                                              .appLockEnabled ==
-                                          1,
+                                              .appLockEnabled,
                                       onChanged: _handleAppLockToggle,
                                       activeThumbColor: Colors.white,
                                       inactiveThumbColor: Colors.white,
@@ -573,17 +574,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       value:
                                           _setting
                                               .securitySetting
-                                              .screenshotLockEnabled ==
-                                          1,
+                                              .screenshotLockEnabled,
                                       onChanged: Platform.isAndroid ? (value) async {
                                         setState(() {
                                           _setting = _setting.copyWith(
                                             securitySetting: _setting
                                                 .securitySetting
                                                 .copyWith(
-                                                  screenshotLockEnabled: value
-                                                      ? 1
-                                                      : 0,
+                                                  screenshotLockEnabled: value,
                                                 ),
                                           );
                                         });
@@ -1240,10 +1238,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
 
                 // 备份类型
                 DropdownButtonFormField<String>(
-                  initialValue: _config.backupSetting.type
-                      .toString()
-                      .split('.')
-                      .last,
+                  initialValue: _config.backupSetting.type.name,
                   decoration: const InputDecoration(
                     labelText: '备份类型',
                     border: OutlineInputBorder(),
@@ -1259,7 +1254,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   onChanged: (value) {
                     if (value != null) {
                       final newType = BackupType.values.firstWhere(
-                        (e) => e.toString().split('.').last == value,
+                        (e) => e.name == value,
                       );
                       setState(() {
                         _config = _config.copyWith(
@@ -1306,6 +1301,17 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       });
                     },
                   ),
+                  if (_webDavUrlController.text.startsWith('http://'))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '建议使用 HTTPS 连接，HTTP 下凭据将明文传输',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _webDavUsernameController,
@@ -1525,7 +1531,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: Theme.of(context).dividerColor,
+                        color: Theme.of(context).brightness == Brightness.light
+                            ? Colors.grey.shade200
+                            : Colors.grey.shade800,
                       ),
                       borderRadius: BorderRadius.circular(8),
                       color: Theme.of(

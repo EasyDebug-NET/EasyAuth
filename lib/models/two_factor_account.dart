@@ -31,7 +31,7 @@ class TwoFactorAccount {
   final DateTime updatedAt;
 
   /// 创建 2FA 账户实例
-  TwoFactorAccount.name(
+  TwoFactorAccount(
     this.id,
     this.issuer,
     this.name,
@@ -76,7 +76,7 @@ class TwoFactorAccount {
 
   /// 从 JSON Map 创建实例
   factory TwoFactorAccount.fromJson(Map<String, dynamic> json) {
-    return TwoFactorAccount.name(
+    return TwoFactorAccount(
       json['id'] as String,
       json['issuer'] as String?,
       json['name'] as String?,

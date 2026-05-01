@@ -378,7 +378,7 @@ class BackupService {
     try {
       final typeStr = await _secureStorage.read(key: 'backup_type') ?? 'off';
       final backupType = BackupType.values.firstWhere(
-        (e) => e.toString().split('.').last == typeStr,
+        (e) => e.name == typeStr,
         orElse: () => BackupType.off,
       );
       final webDavUrl = await _secureStorage.read(key: 'webdav_url') ?? '';
@@ -399,10 +399,12 @@ class BackupService {
       final backupKey = await _secureStorage.read(key: 'backup_key') ?? '';
       final appLockEnabledStr =
           await _secureStorage.read(key: 'app_lock_enabled') ?? '0';
-      final appLockEnabled = int.tryParse(appLockEnabledStr) ?? 0;
+      final appLockEnabled =
+          appLockEnabledStr == '1' || appLockEnabledStr == 'true';
       final screenshotLockEnabledStr =
           await _secureStorage.read(key: 'screenshot_lock_enabled') ?? '1';
-      final screenshotLockEnabled = int.tryParse(screenshotLockEnabledStr) ?? 1;
+      final screenshotLockEnabled =
+          screenshotLockEnabledStr != '0' && screenshotLockEnabledStr != 'false';
       return Setting(
         backupSetting: BackupSetting(
           type: backupType,
@@ -448,7 +450,7 @@ class BackupService {
   Future<void> saveConfig(Setting setting) async {
     await _secureStorage.write(
       key: 'backup_type',
-      value: setting.backupSetting.type.toString().split('.').last,
+      value: setting.backupSetting.type.name,
     );
     await _secureStorage.write(
       key: 'webdav_url',
@@ -493,11 +495,11 @@ class BackupService {
     );
     await _secureStorage.write(
       key: 'app_lock_enabled',
-      value: setting.securitySetting.appLockEnabled.toString(),
+      value: setting.securitySetting.appLockEnabled ? '1' : '0',
     );
     await _secureStorage.write(
       key: 'screenshot_lock_enabled',
-      value: setting.securitySetting.screenshotLockEnabled.toString(),
+      value: setting.securitySetting.screenshotLockEnabled ? '1' : '0',
     );
   }
 
@@ -653,7 +655,7 @@ class BackupService {
       if (secret == null || name == null) continue;
 
       // 创建账户
-      final twoFactorAccount = TwoFactorAccount.name(
+      final twoFactorAccount = TwoFactorAccount(
         '',
         // ID 会自动生成
         issuer,

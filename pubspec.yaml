@@ -16,10 +16,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.1.6
+version: 0.3.0
 
 environment:
-  sdk: ^3.11.3
+  sdk: ^3.12.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -42,7 +42,7 @@ dependencies:
   # QR Scan
   mobile_scanner: ^7.2.0
   # QR Generate
-  qr: ^3.0.2
+  qr: ^4.0.0
   # 存储
   flutter_secure_storage: ^10.0.0
   # UUID
@@ -61,7 +61,7 @@ dependencies:
   # 打开链接
   url_launcher: ^6.3.2
   # 应用信息
-  package_info_plus: ^9.0.1
+  package_info_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:

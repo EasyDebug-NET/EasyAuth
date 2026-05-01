@@ -49,7 +49,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
   /// 保存账户
   Future<void> _saveAccount() async {
     if (_formKey.currentState!.validate() && _account != null) {
-      final updatedAccount = TwoFactorAccount.name(
+      final updatedAccount = TwoFactorAccount(
         _account!.id,
         _issuerController.text.isEmpty ? null : _issuerController.text,
         _nameController.text.isEmpty ? null : _nameController.text,

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'base32_utils.dart';
+import 'package:base32/base32.dart';
 
 /// 二维码数据解析与生成工具类
 ///
@@ -221,7 +221,7 @@ class QrUtils {
             final length = _readVarint(data, offset);
             offset += _varintSize(length);
             final secretBytes = data.sublist(offset, offset + length);
-            result['secret'] = Base32.encode(secretBytes);
+            result['secret'] = base32.encode(secretBytes);
             offset += length;
           } else {
             offset = _skipField(data, offset, wireType);
@@ -350,7 +350,7 @@ class QrUtils {
 
     // field 1: bytes secret
     if (account.containsKey('secret') && account['secret'] != null) {
-      final secret = Base32.decode(account['secret'] as String);
+      final secret = base32.decode(account['secret'] as String);
       buffer.add(0x0a); // tag = 1 << 3 | 2
       buffer.addAll(_writeVarint(secret.length));
       buffer.addAll(secret);

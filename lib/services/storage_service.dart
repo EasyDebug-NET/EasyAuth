@@ -29,7 +29,7 @@ class StorageService {
       final id = _uuid.v4();
 
       // 创建带 ID 的账户
-      final accountWithId = TwoFactorAccount.name(
+      final accountWithId = TwoFactorAccount(
         id,
         account.issuer,
         account.name,
@@ -48,17 +48,17 @@ class StorageService {
           ? (jsonDecode(indexJson) as List).cast<String>()
           : <String>[];
 
-      // 写入账户数据
-      await _secureStorage.write(
-        key: '$_accountPrefix$id',
-        value: jsonEncode(accountWithId.toJson()),
-      );
-
-      // 更新索引
+      // 更新索引（先写索引，避免崩溃留下无引用的孤儿数据）
       ids.add(id);
       await _secureStorage.write(
         key: _accountsIndexKey,
         value: jsonEncode(ids),
+      );
+
+      // 写入账户数据
+      await _secureStorage.write(
+        key: '$_accountPrefix$id',
+        value: jsonEncode(accountWithId.toJson()),
       );
 
       return id;
@@ -128,7 +128,7 @@ class StorageService {
       if (!ids.contains(account.id)) return 0;
 
       // 更新账户数据
-      final updatedAccount = TwoFactorAccount.name(
+      final updatedAccount = TwoFactorAccount(
         account.id,
         account.issuer,
         account.name,
@@ -165,15 +165,15 @@ class StorageService {
       // 检查 ID 是否存在
       if (!ids.contains(id)) return 0;
 
-      // 删除账户数据
-      await _secureStorage.delete(key: '$_accountPrefix$id');
-
-      // 更新索引
+      // 更新索引（先从索引移除，再删数据，避免崩溃留下指向不存在数据的索引）
       ids.remove(id);
       await _secureStorage.write(
         key: _accountsIndexKey,
         value: jsonEncode(ids),
       );
+
+      // 删除账户数据
+      await _secureStorage.delete(key: '$_accountPrefix$id');
 
       return 1;
     } catch (e) {

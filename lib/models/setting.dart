@@ -125,15 +125,15 @@ class S3Config {
 
 /// 安全设置
 class SecuritySetting {
-  /// 是否开启应用锁 (0: 关闭, 1: 开启)
-  final int appLockEnabled;
+  /// 是否开启应用锁
+  final bool appLockEnabled;
 
-  /// 是否开启截屏锁 (0: 关闭, 1: 开启)
-  final int screenshotLockEnabled;
+  /// 是否开启截屏锁
+  final bool screenshotLockEnabled;
 
   const SecuritySetting({
-    this.appLockEnabled = 0,
-    this.screenshotLockEnabled = 1,
+    this.appLockEnabled = false,
+    this.screenshotLockEnabled = true,
   });
 
   /// 序列化为 JSON Map
@@ -147,13 +147,13 @@ class SecuritySetting {
   /// 从 JSON Map 反序列化
   factory SecuritySetting.fromJson(Map<String, dynamic> json) {
     return SecuritySetting(
-      appLockEnabled: json['appLockEnabled'] ?? 0,
-      screenshotLockEnabled: json['screenshotLockEnabled'] ?? 1,
+      appLockEnabled: json['appLockEnabled'] == true,
+      screenshotLockEnabled: json['screenshotLockEnabled'] != false,
     );
   }
 
   /// 创建副本，可选择覆盖部分字段
-  SecuritySetting copyWith({int? appLockEnabled, int? screenshotLockEnabled}) {
+  SecuritySetting copyWith({bool? appLockEnabled, bool? screenshotLockEnabled}) {
     return SecuritySetting(
       appLockEnabled: appLockEnabled ?? this.appLockEnabled,
       screenshotLockEnabled:
@@ -186,7 +186,7 @@ class BackupSetting {
   /// 序列化为 JSON Map
   Map<String, dynamic> toJson() {
     return {
-      'type': type.toString().split('.').last,
+      'type': type.name,
       'webDavConfig': webDavConfig.toJson(),
       's3Config': s3Config.toJson(),
       'backupKey': backupKey,
@@ -197,7 +197,7 @@ class BackupSetting {
   factory BackupSetting.fromJson(Map<String, dynamic> json) {
     return BackupSetting(
       type: BackupType.values.firstWhere(
-        (e) => e.toString().split('.').last == json['type'],
+        (e) => e.name == json['type'],
         orElse: () => BackupType.off,
       ),
       webDavConfig: WebDavConfig.fromJson(json['webDavConfig'] ?? {}),

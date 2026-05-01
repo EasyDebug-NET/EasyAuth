@@ -63,7 +63,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
           ? (int.tryParse(_counterController.text) ?? 0)
           : 0;
 
-      final account = TwoFactorAccount.name(
+      final account = TwoFactorAccount(
         '',
         _issuerController.text.isEmpty ? null : _issuerController.text,
         _nameController.text.isEmpty ? null : _nameController.text,

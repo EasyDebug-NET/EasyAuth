@@ -147,7 +147,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
               name = rawName.substring(issuer.length + 1);
             }
 
-            final account = TwoFactorAccount.name(
+            final account = TwoFactorAccount(
               '',
               issuer,
               name,

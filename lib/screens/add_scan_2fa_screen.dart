@@ -164,7 +164,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
       // 转换secret为大写，确保Base32编码格式正确
       final normalizedSecret = secret.toUpperCase();
 
-      final account = TwoFactorAccount.name(
+      final account = TwoFactorAccount(
         '',
         params['issuer'] as String?,
         params['name'] as String?,

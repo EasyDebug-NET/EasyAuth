@@ -24,25 +24,21 @@ class OtpService {
     int? timestamp,
     int? counter,
   }) {
-    try {
-      // 确定消息值：HOTP 模式用 counter，TOTP 模式用时间步数
-      final int message;
-      if (counter != null) {
-        message = counter;
-      } else {
-        final time = timestamp ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        message = time ~/ period;
-      }
-
-      return _computeOtp(
-        secret: secret,
-        message: message,
-        digits: digits,
-        algorithm: algorithm,
-      );
-    } catch (e) {
-      return 'ERROR';
+    // 确定消息值：HOTP 模式用 counter，TOTP 模式用时间步数
+    final int message;
+    if (counter != null) {
+      message = counter;
+    } else {
+      final time = timestamp ?? DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      message = time ~/ period;
     }
+
+    return _computeOtp(
+      secret: secret,
+      message: message,
+      digits: digits,
+      algorithm: algorithm,
+    );
   }
 
   /// 核心 OTP 计算逻辑：HMAC + 动态截取

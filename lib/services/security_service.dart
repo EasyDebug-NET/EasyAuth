@@ -55,21 +55,23 @@ class SecurityService {
   /// 返回认证是否成功
   Future<bool> authenticate({required String reason, int timeout = 30}) async {
     try {
-      // 检查是否支持生物识别
       bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
       bool isDeviceSupported = await _localAuth.isDeviceSupported();
       debugPrint(
         '认证前检查: canCheckBiometrics=$canCheckBiometrics, isDeviceSupported=$isDeviceSupported',
       );
 
-      if (!canCheckBiometrics || !isDeviceSupported) {
-        debugPrint('设备不支持生物识别');
+      if (!isDeviceSupported) {
+        debugPrint('设备不支持任何形式的锁屏认证');
         return false;
       }
 
-      // 执行认证
-      debugPrint('开始执行生物识别认证');
-      bool result = await _localAuth.authenticate(localizedReason: reason);
+      // biometricOnly: false 允许设备PIN/密码作为后备，模拟器也能用
+      debugPrint('开始执行认证 (biometricOnly=${canCheckBiometrics})');
+      final result = await _localAuth.authenticate(
+        localizedReason: reason,
+        biometricOnly: canCheckBiometrics,
+      );
       debugPrint('认证结果: $result');
 
       // 更新认证状态

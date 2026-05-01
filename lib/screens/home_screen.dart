@@ -33,6 +33,9 @@ class _HomeScreenState extends State<HomeScreen>
   /// 安全服务
   final SecurityService _securityService = SecurityService();
 
+  static const _authFailureExitDelay = Duration(milliseconds: 500);
+  static const _operationStatusResetDuration = Duration(seconds: 3);
+
   /// 是否需要显示认证界面
   bool _needsAuthentication = false;
 
@@ -91,12 +94,8 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // 延迟初始化，让UI先显示
-    Future.delayed(Duration(milliseconds: 50), () {
-      _initialize();
-    });
-    // 延迟启动定时器，避免在初始化时占用主线程
-    Future.delayed(Duration(milliseconds: 100), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _initialize();
       _startTimer();
     });
     _searchController.addListener(() {
@@ -145,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     // 检查是否需要认证
     if (_securityService.needsAuthentication(
-      _setting!.securitySetting.appLockEnabled == 1,
+      _setting!.securitySetting.appLockEnabled,
     )) {
       // 需要进行生物识别认证
       setState(() {
@@ -158,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       if (!authenticated) {
         // 认证失败，退出应用
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(_authFailureExitDelay, () {
           if (mounted) {
             // 使用 SystemNavigator.pop() 退出应用，避免闪退
             if (Platform.isAndroid) {
@@ -208,16 +207,12 @@ class _HomeScreenState extends State<HomeScreen>
                   newAccount.counter == account.counter,
             ),
           )) {
-        // 延迟更新 UI，让主线程有更多时间处理其他任务
-        Future.delayed(Duration(milliseconds: 16), () {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
           setState(() {
             _accounts = accounts;
           });
-          // 延迟更新动态码，进一步减轻主线程负担
-          Future.delayed(Duration(milliseconds: 8), () {
-            _updateCodes();
-            _filterAccounts();
-          });
+          _updateCodes();
+          _filterAccounts();
         });
       } else {
         // 数据没有变化，只更新动态码
@@ -339,7 +334,9 @@ class _HomeScreenState extends State<HomeScreen>
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.grey.shade200
+                    : Colors.grey.shade800,
               borderRadius: BorderRadius.circular(24),
             ),
             child: Row(
@@ -538,7 +535,9 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                               ),
                               Divider(
-                                color: Theme.of(context).dividerColor,
+                                color: Theme.of(context).brightness == Brightness.light
+                                    ? Colors.grey.shade200
+                                    : Colors.grey.shade800,
                                 height: 1,
                               ),
                             ],
@@ -655,7 +654,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// 递增 HOTP 计数器并刷新验证码
   Future<void> _incrementCounter(TwoFactorAccount account) async {
     final newCounter = account.counter + 1;
-    final updatedAccount = TwoFactorAccount.name(
+    final updatedAccount = TwoFactorAccount(
       account.id,
       account.issuer,
       account.name,
@@ -804,7 +803,9 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 trailing: const Icon(Icons.drag_handle),
               ),
-              Divider(color: Theme.of(context).dividerColor, height: 1),
+              Divider(color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.grey.shade200
+                    : Colors.grey.shade800, height: 1),
             ],
           ),
         );
@@ -898,7 +899,7 @@ class _HomeScreenState extends State<HomeScreen>
               });
 
               // 3秒后自动重置状态
-              Future.delayed(Duration(seconds: 3), () {
+              Future.delayed(_operationStatusResetDuration, () {
                 if (mounted) {
                   setState(() {
                     _operationStatus = 0;
@@ -909,16 +910,22 @@ class _HomeScreenState extends State<HomeScreen>
           } catch (e) {
             if (mounted) {
               String errorMessage = '备份失败';
-              if (e is Exception) {
-                errorMessage = '备份失败: ${e.toString().split(':').last.trim()}';
+              String? errorDetails;
+
+              if (e is AppException) {
+                errorMessage = e.message;
+                errorDetails = e.details;
+              } else {
+                errorMessage = '备份失败: ${e.toString()}';
               }
-              StyleUtils.errorSnackBar(context, errorMessage);
+
+              StyleUtils.errorSnackBar(context, errorMessage, errorDetails);
               setState(() {
                 _operationStatus = 2;
               });
 
               // 3秒后自动重置状态
-              Future.delayed(Duration(seconds: 3), () {
+              Future.delayed(_operationStatusResetDuration, () {
                 if (mounted) {
                   setState(() {
                     _operationStatus = 0;
@@ -976,7 +983,7 @@ class _HomeScreenState extends State<HomeScreen>
                 await _loadAccounts();
 
                 // 3秒后自动重置状态
-                Future.delayed(Duration(seconds: 3), () {
+                Future.delayed(_operationStatusResetDuration, () {
                   if (mounted) {
                     setState(() {
                       _operationStatus = 0;
@@ -993,7 +1000,7 @@ class _HomeScreenState extends State<HomeScreen>
                   errorMessage = e.message;
                   errorDetails = e.details;
                 } else {
-                  errorMessage = '恢复失败: ${e.toString().split(':').last.trim()}';
+                  errorMessage = '恢复失败: ${e.toString()}';
                 }
 
                 StyleUtils.errorSnackBar(context, errorMessage, errorDetails);
@@ -1002,7 +1009,7 @@ class _HomeScreenState extends State<HomeScreen>
                 });
 
                 // 3秒后自动重置状态
-                Future.delayed(Duration(seconds: 3), () {
+                Future.delayed(_operationStatusResetDuration, () {
                   if (mounted) {
                     setState(() {
                       _operationStatus = 0;
