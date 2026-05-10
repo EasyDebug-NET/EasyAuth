@@ -6,7 +6,7 @@ import '../services/storage_service.dart';
 import '../utils/qr_utils.dart';
 import '../utils/style_utils.dart';
 
-/// 导出验证码页面
+/// 导出动态密码页面
 class Export2FaScreen extends StatefulWidget {
   const Export2FaScreen({super.key});
 
@@ -51,7 +51,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
       }).toList();
 
       if (selectedAccounts.isEmpty) {
-        StyleUtils.errorSnackBar(context, '请至少选择一个验证码');
+        StyleUtils.errorSnackBar(context, '请至少选择一个动态密码');
         return;
       }
 
@@ -105,7 +105,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('导出验证码')),
+      appBar: AppBar(title: const Text('导出动态密码')),
       body: _qrcodeData == null
           ? Column(
               children: [
@@ -176,9 +176,9 @@ class _QrCodeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final qrCode = QrCode.fromData(
-      data: data,
-      errorCorrectLevel: QrErrorCorrectLevel.M,
+    final qrCode = QrCode(
+      payload: QrPayload.fromString(data),
+      errorCorrectLevel: QrErrorCorrectLevel.medium,
     );
     final qrImage = QrImage(qrCode);
 

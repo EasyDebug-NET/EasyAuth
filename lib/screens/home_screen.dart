@@ -393,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            '此处似乎尚无任何验证码',
+                            '此处似乎尚无任何动态密码',
                             style: TextStyle(fontSize: 18, color: Colors.grey),
                           ),
                           const SizedBox(height: 8),
@@ -565,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen>
               value: 'manual',
               child: ListTile(
                 leading: Icon(Icons.keyboard),
-                title: Text('输入2FA秘钥'),
+                title: Text('输入2FA密钥'),
               ),
             ),
           ],
@@ -651,7 +651,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// 递增 HOTP 计数器并刷新验证码
+  /// 递增 HOTP 计数器并刷新动态密码
   Future<void> _incrementCounter(TwoFactorAccount account) async {
     final newCounter = account.counter + 1;
     final updatedAccount = TwoFactorAccount(

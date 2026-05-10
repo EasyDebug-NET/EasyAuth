@@ -1071,6 +1071,7 @@ class _BackupConfigDialog extends StatefulWidget {
 class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   late Setting _config;
   final _formKey = GlobalKey<FormState>();
+  bool _hasBackupPassword = false;
 
   // WebDAV 控制器
   late TextEditingController _webDavUrlController;
@@ -1085,12 +1086,21 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   late TextEditingController _s3BucketNameController;
   late TextEditingController _s3BackupDirController;
 
+  // 备份密码控制器
+  late TextEditingController _backupPasswordController;
+  late TextEditingController _backupConfirmPasswordController;
+
   @override
   void initState() {
     super.initState();
     _config = widget.initialConfig;
-    // 初始化控制器
     _initControllers();
+    _checkPasswordStatus();
+  }
+
+  Future<void> _checkPasswordStatus() async {
+    _hasBackupPassword = await BackupService().hasBackupPassword();
+    setState(() {});
   }
 
   /// 初始化控制器
@@ -1147,6 +1157,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
           ? 'EasyAuth'
           : _config.backupSetting.s3Config.backupDir,
     );
+
+    _backupPasswordController = TextEditingController();
+    _backupConfirmPasswordController = TextEditingController();
   }
 
   @override
@@ -1162,6 +1175,8 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
     _s3SecretAccessKeyController.dispose();
     _s3BucketNameController.dispose();
     _s3BackupDirController.dispose();
+    _backupPasswordController.dispose();
+    _backupConfirmPasswordController.dispose();
 
     super.dispose();
   }
@@ -1267,6 +1282,89 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   },
                 ),
                 const SizedBox(height: 16),
+
+                if (_config.backupSetting.type != BackupType.off) ...[
+                  if (_hasBackupPassword)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle,
+                              color: Colors.green.shade600, size: 20),
+                          const SizedBox(width: 8),
+                          const Text('备份密码已设置',
+                              style: TextStyle(color: Colors.black87)),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _hasBackupPassword = false;
+                                _backupPasswordController.clear();
+                                _backupConfirmPasswordController.clear();
+                              });
+                            },
+                            child: const Text('修改'),
+                          ),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    TextFormField(
+                      controller: _backupPasswordController,
+                      decoration: const InputDecoration(
+                        labelText: '备份密码',
+                        hintText: '请设置备份加密密码',
+                        border: OutlineInputBorder(),
+                      ),
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '备份密码不能为空';
+                        }
+                        if (value.length < 8) {
+                          return '备份密码长度不能少于8位';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _backupConfirmPasswordController,
+                      decoration: const InputDecoration(
+                        labelText: '确认备份密码',
+                        hintText: '请再次输入备份密码',
+                        border: OutlineInputBorder(),
+                      ),
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '确认备份密码不能为空';
+                        }
+                        if (value != _backupPasswordController.text) {
+                          return '两次输入的密码不一致';
+                        }
+                        return null;
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '备份密码用于加密备份文件。多台设备需设置相同密码才能共享备份。',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+
+                if (_config.backupSetting.type != BackupType.off) const SizedBox(height: 16),
 
                 // WebDAV 配置
                 if (_config.backupSetting.type == BackupType.webdav) ...[
@@ -1583,8 +1681,21 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_formKey.currentState?.validate() ?? false) {
+                            // 保存备份密码
+                            final password = _backupPasswordController.text;
+                            if (!_hasBackupPassword && password.isNotEmpty) {
+                              await BackupService().saveBackupPassword(password);
+                            } else if (!_hasBackupPassword) {
+                              // 如果之前没设置且现在也没输入，清除密码
+                              await BackupService().saveBackupPassword('');
+                            }
+                            // 如果已有密码且用户修改了
+                            if (_hasBackupPassword && password.isNotEmpty) {
+                              await BackupService().saveBackupPassword(password);
+                            }
+
                             // 根据备份类型决定保存哪些数据，清空其他类型的数据
                             BackupSetting newBackupSetting;
 

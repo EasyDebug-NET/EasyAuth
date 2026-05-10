@@ -5,7 +5,7 @@ import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../utils/style_utils.dart';
 
-/// 手动输入2FA秘钥添加账户页面
+/// 手动输入2FA密钥添加账户页面
 class AddManual2FaScreen extends StatefulWidget {
   const AddManual2FaScreen({super.key});
 
@@ -13,7 +13,7 @@ class AddManual2FaScreen extends StatefulWidget {
   State<AddManual2FaScreen> createState() => _AddManual2FaScreenState();
 }
 
-/// 手动输入2FA秘钥添加账户页面状态
+/// 手动输入2FA密钥添加账户页面状态
 class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   /// 表单键
   final _formKey = GlobalKey<FormState>();
@@ -24,7 +24,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   /// 账户名控制器
   final _nameController = TextEditingController();
 
-  /// 秘钥控制器
+  /// 密钥控制器
   final _secretController = TextEditingController();
 
   /// 计数器控制器
@@ -33,7 +33,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   /// 数据库服务
   final StorageService _storageService = StorageService();
 
-  /// 秘钥类型
+  /// 密钥类型
   String _secretType = 'time';
 
   @override
@@ -88,7 +88,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('输入验证码详情')),
+      appBar: AppBar(title: Text('输入动态密码详情')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -111,13 +111,13 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
               StyleUtils.mediumSpacing,
               TextFormField(
                 controller: _secretController,
-                decoration: StyleUtils.inputDecoration('2FA秘钥', 'Base32'),
+                decoration: StyleUtils.inputDecoration('2FA密钥', 'Base32'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return '请输入2FA秘钥';
+                    return '请输入2FA密钥';
                   }
                   if (!_isValidBase32(value)) {
-                    return '无效的Base32秘钥格式';
+                    return '无效的Base32密钥格式';
                   }
                   return null;
                 },
@@ -125,7 +125,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
               StyleUtils.mediumSpacing,
               DropdownButtonFormField<String>(
                 initialValue: _secretType,
-                decoration: StyleUtils.inputDecoration('秘钥类型', null),
+                decoration: StyleUtils.inputDecoration('密钥类型', null),
                 items: const [
                   DropdownMenuItem(value: 'time', child: Text('基于时间')),
                   DropdownMenuItem(value: 'counter', child: Text('基于计数器')),

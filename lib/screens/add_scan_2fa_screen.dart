@@ -190,7 +190,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
       // 其他错误
       String errorMessage = '无法识别此二维码';
       if (e.toString().contains('Only TOTP is supported')) {
-        errorMessage = '仅支持TOTP类型的验证码，不支持HOTP';
+        errorMessage = '仅支持TOTP类型的动态密码，不支持HOTP';
       }
       _showErrorDialog('扫描失败', errorMessage);
     }

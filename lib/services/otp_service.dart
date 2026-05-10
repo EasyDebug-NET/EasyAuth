@@ -8,7 +8,7 @@ import 'package:crypto/crypto.dart';
 class OtpService {
   /// 计算动态码（TOTP 或 HOTP）
   ///
-  /// [secret] Base32编码的秘钥
+  /// [secret] Base32编码的密钥
   /// [period] TOTP 动态码更新周期，默认30秒
   /// [digits] 动态码位数，默认6位
   /// [algorithm] 加密算法（SHA1、SHA256、SHA512），默认 SHA1

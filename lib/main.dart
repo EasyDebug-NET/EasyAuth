@@ -67,7 +67,6 @@ class _MyAppState extends State<MyApp> {
             secretAccessKey: '',
             bucketName: '',
           ),
-          backupKey: '',
         ),
         securitySetting: const SecuritySetting(),
       );

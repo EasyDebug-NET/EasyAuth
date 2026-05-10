@@ -9,7 +9,7 @@ class TwoFactorAccount {
   /// 账户名称（如用户邮箱）
   final String? name;
 
-  /// 2FA 秘钥（Base32 编码）
+  /// 2FA 密钥（Base32 编码）
   final String secret;
 
   /// 动态密码更新周期（秒），TOTP 默认 30 秒

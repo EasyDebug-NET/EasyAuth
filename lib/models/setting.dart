@@ -173,14 +173,10 @@ class BackupSetting {
   /// S3 配置
   final S3Config s3Config;
 
-  /// 备份加密秘钥（在备份时自动生成，用于解密备份文件）
-  final String backupKey;
-
   const BackupSetting({
     required this.type,
     required this.webDavConfig,
     required this.s3Config,
-    required this.backupKey,
   });
 
   /// 序列化为 JSON Map
@@ -189,7 +185,6 @@ class BackupSetting {
       'type': type.name,
       'webDavConfig': webDavConfig.toJson(),
       's3Config': s3Config.toJson(),
-      'backupKey': backupKey,
     };
   }
 
@@ -202,7 +197,6 @@ class BackupSetting {
       ),
       webDavConfig: WebDavConfig.fromJson(json['webDavConfig'] ?? {}),
       s3Config: S3Config.fromJson(json['s3Config'] ?? {}),
-      backupKey: json['backupKey'] ?? '',
     );
   }
 
@@ -211,13 +205,11 @@ class BackupSetting {
     BackupType? type,
     WebDavConfig? webDavConfig,
     S3Config? s3Config,
-    String? backupKey,
   }) {
     return BackupSetting(
       type: type ?? this.type,
       webDavConfig: webDavConfig ?? this.webDavConfig,
       s3Config: s3Config ?? this.s3Config,
-      backupKey: backupKey ?? this.backupKey,
     );
   }
 }

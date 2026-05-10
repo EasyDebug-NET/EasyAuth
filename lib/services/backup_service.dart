@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
+import 'package:encrypt/encrypt.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -27,37 +30,33 @@ class BackupService {
   final StorageService _storageService = StorageService();
   final FlutterSecureStorage _secureStorage = sharedSecureStorage;
 
-  /// 生成备份密码
+  static const String _backupPasswordKey = 'backup_password';
+  static const int _saltLength = 16;
+  static const int _nonceLength = 12;
+
+  /// 生成加密安全的随机字节
+  List<int> _randomBytes(int length) {
+    final random = Random.secure();
+    return List<int>.generate(length, (_) => random.nextInt(256));
+  }
+
+  /// 从备份密码派生 AES-256 密钥
   ///
-  /// [setting] 应用设置
-  ///
-  /// 返回生成的备份密码
-  /// 使用SHA-256哈希函数生成备份密码，避免直接存储敏感信息
-  /// WebDAV: SHA256(url + username + password + 固定盐值)
-  /// S3: SHA256(endpoint + accessKeyId + secretAccessKey + 固定盐值)
-  /// 生成的哈希值固定为64个字符（十六进制字符串），无需担心长度限制
-  String _generateBackupKey(Setting setting) {
-    String sourceData;
-    if (setting.backupSetting.type == BackupType.webdav) {
-      sourceData =
-          '${setting.backupSetting.webDavConfig.url}${setting.backupSetting.webDavConfig.username}${setting.backupSetting.webDavConfig.password}';
-    } else if (setting.backupSetting.type == BackupType.s3) {
-      sourceData =
-          '${setting.backupSetting.s3Config.endpoint}${setting.backupSetting.s3Config.accessKeyId}${setting.backupSetting.s3Config.secretAccessKey}';
-    } else {
-      throw ConfigException('不支持的备份类型');
-    }
+  /// SHA-256(password + salt) → 32 字节密钥
+  List<int> _deriveBackupKey(String password, List<int> salt) {
+    final data = Uint8List.fromList([...utf8.encode(password), ...salt]);
+    return sha256.convert(data).bytes;
+  }
 
-    // 添加固定盐值，增强安全性
-    const salt = 'EasyAuthBackupSalt';
-    final combinedData = '$sourceData$salt';
+  /// 检查是否已设置备份密码
+  Future<bool> hasBackupPassword() async {
+    final password = await _secureStorage.read(key: _backupPasswordKey);
+    return password != null && password.isNotEmpty;
+  }
 
-    // 使用SHA-256哈希函数生成备份密码
-    final bytes = utf8.encode(combinedData);
-    final hash = sha256.convert(bytes);
-
-    // 将哈希值转换为十六进制字符串（固定64个字符）
-    return hash.toString();
+  /// 保存备份密码
+  Future<void> saveBackupPassword(String password) async {
+    await _secureStorage.write(key: _backupPasswordKey, value: password);
   }
 
   /// 执行备份操作
@@ -69,8 +68,7 @@ class BackupService {
   /// 2. 根据备份类型获取备份密码
   /// 3. 打包并加密
   /// 4. 上传到存储服务
-  /// 5. 更新 backupKey
-  /// 6. 清理临时文件
+  /// 5. 清理临时文件
   ///
   /// 抛出异常：
   /// - [StorageException] 当生成备份数据失败时
@@ -95,15 +93,16 @@ class BackupService {
         );
       }
 
-      // 根据备份类型获取备份密码
-      final backupKey = _generateBackupKey(setting);
+      // 检查是否已设置备份密码
+      if (!await hasBackupPassword()) {
+        throw ConfigException('请先设置备份密码');
+      }
 
       // 打包并加密
       final tempDir = await getTemporaryDirectory();
       final backupFile = await _createBackupFile(
         migrationData,
         tempDir.path,
-        backupKey,
       );
 
       // 上传到存储服务
@@ -163,12 +162,6 @@ class BackupService {
           originalException: e is Exception ? e : null,
         );
       }
-
-      // 更新 backupKey
-      final updatedSetting = setting.copyWith(
-        backupSetting: setting.backupSetting.copyWith(backupKey: backupKey),
-      );
-      await saveConfig(updatedSetting);
 
       // 清理临时文件
       await backupFile.delete();
@@ -334,16 +327,9 @@ class BackupService {
       }
 
       try {
-        // 如果 backupKey 为空，根据当前配置生成新的 backupKey
-        String backupKey = setting.backupSetting.backupKey;
-        if (backupKey.isEmpty) {
-          backupKey = _generateBackupKey(setting);
-        }
-
         // 解密并解压
         final migrationData = await _extractMigrationData(
           backupFile.path,
-          backupKey,
         );
         // 恢复数据
         await _restoreFromMigrationData(migrationData);
@@ -396,7 +382,6 @@ class BackupService {
       final s3BucketName =
           await _secureStorage.read(key: 's3_bucket_name') ?? '';
       final s3BackupDir = await _secureStorage.read(key: 's3_backup_dir') ?? '';
-      final backupKey = await _secureStorage.read(key: 'backup_key') ?? '';
       final appLockEnabledStr =
           await _secureStorage.read(key: 'app_lock_enabled') ?? '0';
       final appLockEnabled =
@@ -421,7 +406,6 @@ class BackupService {
             bucketName: s3BucketName,
             backupDir: s3BackupDir,
           ),
-          backupKey: backupKey,
         ),
         securitySetting: SecuritySetting(
           appLockEnabled: appLockEnabled,
@@ -440,7 +424,6 @@ class BackupService {
             secretAccessKey: '',
             bucketName: '',
           ),
-          backupKey: '',
         ),
       );
     }
@@ -489,10 +472,6 @@ class BackupService {
       value: setting.backupSetting.s3Config.backupDir,
     );
 
-    await _secureStorage.write(
-      key: 'backup_key',
-      value: setting.backupSetting.backupKey,
-    );
     await _secureStorage.write(
       key: 'app_lock_enabled',
       value: setting.securitySetting.appLockEnabled ? '1' : '0',
@@ -552,36 +531,57 @@ class BackupService {
     return QrUtils.generateMigrationData(accountList);
   }
 
-  /// 创建备份文件（打包并加密）
+  /// 创建备份文件（打包并 AES-256-GCM 加密）
   ///
   /// [migrationData] 迁移数据（otpauth-migration 格式）
   /// [tempDir] 临时目录路径
-  /// [backupKey] 备份密钥（用于 ZIP 加密）
   ///
   /// 执行步骤：
-  /// 1. 创建 ZIP 存档
-  /// 2. 添加迁移数据文件到存档
-  /// 3. 使用标准 ZIP 加密编码存档
-  /// 4. 写入最终备份文件
+  /// 1. 从安全存储读取备份密码
+  /// 2. 生成随机盐值（16字节）
+  /// 3. SHA-256 派生 256 位密钥
+  /// 4. 生成随机 nonce（12字节）
+  /// 5. AES-256-GCM 加密数据
+  /// 6. 创建明文 ZIP 容器（包含 salt 和加密数据）
   ///
   /// 返回创建的备份文件
   Future<File> _createBackupFile(
     String migrationData,
     String tempDir,
-    String backupKey,
   ) async {
-    // 创建 ZIP 存档
+    final password = await _secureStorage.read(key: _backupPasswordKey);
+    if (password == null || password.isEmpty) {
+      throw ConfigException('备份密码未设置');
+    }
+
+    // 生成随机盐值
+    final salt = _randomBytes(_saltLength);
+
+    // SHA-256 派生密钥
+    final keyBytes = _deriveBackupKey(password, salt);
+
+    // AES-256-GCM 加密
+    final key = Key(Uint8List.fromList(keyBytes));
+    final nonce = _randomBytes(_nonceLength);
+    final iv = IV(Uint8List.fromList(nonce));
+    final encrypter = Encrypter(AES(key, mode: AESMode.gcm));
+    final encrypted = encrypter.encrypt(migrationData, iv: iv);
+
+    // encrypted.bytes = ciphertext + 16字节 GCM tag
+    final encryptedData = Uint8List.fromList([
+      ...nonce,
+      ...encrypted.bytes,
+    ]);
+
+    // 创建明文 ZIP 容器
     final archive = Archive();
-    final fileBytes = migrationData.codeUnits;
+    archive.addFile(ArchiveFile(_saltFileName, salt.length, salt));
     archive.addFile(
-      ArchiveFile(_migrationDataFileName, fileBytes.length, fileBytes),
+      ArchiveFile(_dataFileName, encryptedData.length, encryptedData),
     );
 
-    // 编码为加密 ZIP（使用标准 ZIP 加密）
-    final zipEncoder = ZipEncoder(password: backupKey);
-    final zipData = zipEncoder.encode(archive);
+    final zipData = ZipEncoder().encode(archive);
 
-    // 写入最终备份文件
     final backupFile = File('$tempDir/backup.zip');
     await backupFile.writeAsBytes(zipData);
     return backupFile;
@@ -590,46 +590,61 @@ class BackupService {
   /// 提取迁移数据（解密并解压）
   ///
   /// [filePath] 备份文件路径
-  /// [backupKey] 备份密钥（用于 ZIP 解密）
   ///
   /// 执行步骤：
-  /// 1. 读取加密文件
-  /// 2. 使用标准 ZIP 解密解压存档
-  /// 3. 找到迁移数据文件
-  /// 4. 读取文件内容
+  /// 1. 从安全存储读取备份密码
+  /// 2. 解压明文 ZIP 获取盐值和加密数据
+  /// 3. SHA-256 派生密钥
+  /// 4. AES-256-GCM 解密
   ///
   /// 返回迁移数据（otpauth-migration 格式）
-  Future<String> _extractMigrationData(
-    String filePath,
-    String backupKey,
-  ) async {
-    // 读取加密文件
-    final encryptedData = await File(filePath).readAsBytes();
+  Future<String> _extractMigrationData(String filePath) async {
+    final password = await _secureStorage.read(key: _backupPasswordKey);
+    if (password == null || password.isEmpty) {
+      throw ConfigException('备份密码未设置');
+    }
+
+    final fileData = await File(filePath).readAsBytes();
 
     try {
-      // 解压加密 ZIP
-      // 使用用户提供的备份密钥作为 ZIP 密码
-      final archive = ZipDecoder().decodeBytes(
-        encryptedData,
-        password: backupKey,
+      // 解压明文 ZIP
+      final archive = ZipDecoder().decodeBytes(fileData);
+
+      // 提取盐值
+      final saltFile = archive.files.firstWhere(
+        (file) => file.name == _saltFileName,
+        orElse: () => throw Exception('备份文件格式错误：缺少盐值'),
+      );
+      final salt = saltFile.content as List<int>;
+
+      // 提取加密数据
+      final dataFile = archive.files.firstWhere(
+        (file) => file.name == _dataFileName,
+        orElse: () => throw Exception('备份文件格式错误：缺少数据'),
+      );
+      final encryptedBytes = dataFile.content as List<int>;
+
+      // 解析加密数据格式: nonce (12) + ciphertext + GCM tag (16)
+      final nonce = encryptedBytes.sublist(0, _nonceLength);
+      final cipherTextWithTag = encryptedBytes.sublist(_nonceLength);
+
+      // SHA-256 派生密钥
+      final keyBytes = _deriveBackupKey(password, salt);
+
+      // AES-256-GCM 解密
+      final key = Key(Uint8List.fromList(keyBytes));
+      final iv = IV(Uint8List.fromList(nonce));
+      final encrypter = Encrypter(AES(key, mode: AESMode.gcm));
+      final decrypted = encrypter.decrypt(
+        Encrypted(Uint8List.fromList(cipherTextWithTag)),
+        iv: iv,
       );
 
-      // 找到迁移数据文件
-      final migrationFile = archive.files.firstWhere(
-        (file) => file.name == _migrationDataFileName,
-        orElse: () => throw Exception('备份文件格式错误'),
-      );
-
-      // 读取文件内容
-      final content = String.fromCharCodes(migrationFile.content as List<int>);
-      return content;
+      return decrypted;
     } catch (e) {
-      // 捕获解密失败的异常
-      if (e.toString().contains('password') ||
-          e.toString().contains('decrypt')) {
-        throw Exception('恢复数据解密失败，请确认是否修改了备份参数。');
-      }
-      rethrow;
+      if (e is ConfigException) rethrow;
+      // AES-GCM 解密失败通常因为密码错误或数据损坏
+      throw Exception('恢复数据解密失败，请确认备份密码是否正确。');
     }
   }
 
@@ -828,6 +843,7 @@ class BackupService {
     }
   }
 
-  /// 迁移数据文件名
-  static const String _migrationDataFileName = 'migration_data.txt';
+  /// 备份文件内文件名
+  static const String _saltFileName = 'salt';
+  static const String _dataFileName = 'data';
 }

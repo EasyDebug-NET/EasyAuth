@@ -8,7 +8,7 @@ import '../services/storage_service.dart';
 import '../utils/qr_utils.dart';
 import '../utils/style_utils.dart';
 
-/// 导入验证码页面
+/// 导入动态密码页面
 class Import2FaScreen extends StatefulWidget {
   const Import2FaScreen({super.key});
 
@@ -192,7 +192,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
       backgroundColor: Colors.black,
       appBar: _importedAccounts.isNotEmpty
           ? AppBar(
-              title: const Text('导入验证码'),
+              title: const Text('导入动态密码'),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.pop(context),
