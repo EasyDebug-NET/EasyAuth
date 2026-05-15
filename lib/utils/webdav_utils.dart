@@ -75,52 +75,59 @@ class WebDavUtils {
 
         final mkcolRequest = http.Request('MKCOL', parentUri)
           ..headers['Authorization'] = authHeader;
-        final streamedResponse = await http.Client()
-            .send(mkcolRequest)
-            .timeout(
-              const Duration(seconds: 30),
-              onTimeout: () {
-                throw HttpException('WebDAV 创建目录超时', uri: parentUri);
-              },
-            );
-        final mkcolBody = await streamedResponse.stream.bytesToString();
-        debugPrint(
-          'WebDAV 创建目录响应: statusCode=${streamedResponse.statusCode}, body=$mkcolBody',
-        );
-
-        // 201 Created 或 405 Method Not Allowed(目录已存在) 都表示成功
-        if (streamedResponse.statusCode == 201 ||
-            streamedResponse.statusCode == 405) {
-          // 重试上传
-          final retryResponse = await http
-              .put(
-                uri,
-                headers: {
-                  'Content-Type': 'application/octet-stream',
-                  'Authorization': authHeader,
-                },
-                body: fileBytes,
-              )
+        final client = http.Client();
+        try {
+          final streamedResponse = await client
+              .send(mkcolRequest)
               .timeout(
                 const Duration(seconds: 30),
                 onTimeout: () {
-                  throw HttpException('WebDAV 上传超时', uri: uri);
+                  throw HttpException('WebDAV 创建目录超时', uri: parentUri);
                 },
               );
-          debugPrint('WebDAV 重试上传响应: statusCode=${retryResponse.statusCode}');
-          if (retryResponse.statusCode == 201 ||
-              retryResponse.statusCode == 204 ||
-              retryResponse.statusCode == 200) {
-            return;
-          }
-          final retryBody = retryResponse.body;
+          final mkcolBody = await streamedResponse.stream.bytesToString();
           debugPrint(
-            'WebDAV 重试上传失败: statusCode=${retryResponse.statusCode}, body=$retryBody',
+            'WebDAV 创建目录响应: statusCode=${streamedResponse.statusCode}, body=$mkcolBody',
           );
-          throw HttpException(
-            'WebDAV 上传失败: HTTP ${retryResponse.statusCode}, $retryBody',
-            uri: uri,
-          );
+
+          // 201 Created 或 405 Method Not Allowed(目录已存在) 都表示成功
+          if (streamedResponse.statusCode == 201 ||
+              streamedResponse.statusCode == 405) {
+            // 重试上传
+            final retryResponse = await http
+                .put(
+                  uri,
+                  headers: {
+                    'Content-Type': 'application/octet-stream',
+                    'Authorization': authHeader,
+                  },
+                  body: fileBytes,
+                )
+                .timeout(
+                  const Duration(seconds: 30),
+                  onTimeout: () {
+                    throw HttpException('WebDAV 上传超时', uri: uri);
+                  },
+                );
+            debugPrint(
+              'WebDAV 重试上传响应: statusCode=${retryResponse.statusCode}',
+            );
+            if (retryResponse.statusCode == 201 ||
+                retryResponse.statusCode == 204 ||
+                retryResponse.statusCode == 200) {
+              return;
+            }
+            final retryBody = retryResponse.body;
+            debugPrint(
+              'WebDAV 重试上传失败: statusCode=${retryResponse.statusCode}, body=$retryBody',
+            );
+            throw HttpException(
+              'WebDAV 上传失败: HTTP ${retryResponse.statusCode}, $retryBody',
+              uri: uri,
+            );
+          }
+        } finally {
+          client.close();
         }
       }
     }

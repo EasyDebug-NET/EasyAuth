@@ -750,6 +750,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
           _config.backupSetting.s3Config.bucketName,
           _config.backupSetting.s3Config.accessKeyId,
           _config.backupSetting.s3Config.secretAccessKey,
+          region: _config.backupSetting.s3Config.region,
         );
         // 过滤出指定目录下的文件
         if (_config.backupSetting.s3Config.backupDir.isNotEmpty) {
@@ -926,6 +927,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
             objectKey,
             _config.backupSetting.s3Config.accessKeyId,
             _config.backupSetting.s3Config.secretAccessKey,
+            region: _config.backupSetting.s3Config.region,
           );
         }
       }
@@ -1085,6 +1087,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   late TextEditingController _s3SecretAccessKeyController;
   late TextEditingController _s3BucketNameController;
   late TextEditingController _s3BackupDirController;
+  late TextEditingController _s3RegionController;
 
   // 备份密码控制器
   late TextEditingController _backupPasswordController;
@@ -1100,6 +1103,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
 
   Future<void> _checkPasswordStatus() async {
     _hasBackupPassword = await BackupService().hasBackupPassword();
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -1157,6 +1161,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
           ? 'EasyAuth'
           : _config.backupSetting.s3Config.backupDir,
     );
+    _s3RegionController = TextEditingController(
+      text: _config.backupSetting.s3Config.region,
+    );
 
     _backupPasswordController = TextEditingController();
     _backupConfirmPasswordController = TextEditingController();
@@ -1175,6 +1182,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
     _s3SecretAccessKeyController.dispose();
     _s3BucketNameController.dispose();
     _s3BackupDirController.dispose();
+    _s3RegionController.dispose();
     _backupPasswordController.dispose();
     _backupConfirmPasswordController.dispose();
 
@@ -1388,7 +1396,6 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                           processedValue.length - 1,
                         );
                       }
-                      _webDavUrlController.text = processedValue;
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
@@ -1616,6 +1623,25 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       });
                     },
                   ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _s3RegionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Region ( 选填，默认us-east-1)',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            s3Config: _config.backupSetting.s3Config.copyWith(
+                              region: value,
+                            ),
+                          ),
+                        );
+                      });
+                    },
+                  ),
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
@@ -1722,7 +1748,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                               newBackupSetting = _config.backupSetting.copyWith(
                                 webDavConfig: _config.backupSetting.webDavConfig
                                     .copyWith(
-                                      url: _webDavUrlController.text,
+                                      url: _webDavUrlController.text.endsWith('/')
+                                          ? _webDavUrlController.text.substring(0, _webDavUrlController.text.length - 1)
+                                          : _webDavUrlController.text,
                                       backupDir:
                                           _webDavBackupDirController.text,
                                       username: _webDavUsernameController.text,
@@ -1755,6 +1783,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                                           _s3SecretAccessKeyController.text,
                                       bucketName: _s3BucketNameController.text,
                                       backupDir: _s3BackupDirController.text,
+                                      region: _s3RegionController.text,
                                     ),
                               );
                             } else {
@@ -1762,7 +1791,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                               newBackupSetting = _config.backupSetting.copyWith(
                                 webDavConfig: _config.backupSetting.webDavConfig
                                     .copyWith(
-                                      url: _webDavUrlController.text,
+                                      url: _webDavUrlController.text.endsWith('/')
+                                          ? _webDavUrlController.text.substring(0, _webDavUrlController.text.length - 1)
+                                          : _webDavUrlController.text,
                                       backupDir:
                                           _webDavBackupDirController.text,
                                       username: _webDavUsernameController.text,
@@ -1777,6 +1808,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                                           _s3SecretAccessKeyController.text,
                                       bucketName: _s3BucketNameController.text,
                                       backupDir: _s3BackupDirController.text,
+                                      region: _s3RegionController.text,
                                     ),
                               );
                             }

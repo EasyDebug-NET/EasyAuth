@@ -105,6 +105,7 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       _searchDebounceTimer = Timer(Duration(milliseconds: 300), () {
+        if (!mounted) return;
         setState(() {
           _searchText = _searchController.text;
           _filterAccounts();
@@ -208,6 +209,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           )) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
           setState(() {
             _accounts = accounts;
           });
@@ -675,16 +677,6 @@ class _HomeScreenState extends State<HomeScreen>
     // 只在账户列表不为空时更新
     if (_accounts.isEmpty) return;
 
-    // 计算一次剩余秒数，因为所有账户的剩余秒数都是相同的（基于当前时间）
-    final remainingSeconds = OtpService.getRemainingSeconds(period: 30);
-
-    // 检查是否需要更新，只有当剩余秒数变化时才更新
-    if (_remainingSeconds.isNotEmpty &&
-        _remainingSeconds.values.first == remainingSeconds) {
-      return;
-    }
-
-    // 一次性更新状态，减少setState调用次数
     setState(() {
       for (final account in _accounts) {
         try {
@@ -699,7 +691,7 @@ class _HomeScreenState extends State<HomeScreen>
           _codes[account.id] = 'ERROR';
           debugPrint('生成动态码失败 - 账户 ${account.displayIssuerName}: $e');
         }
-        _remainingSeconds[account.id] = remainingSeconds;
+        _remainingSeconds[account.id] = OtpService.getRemainingSeconds(period: account.period);
       }
     });
   }
@@ -752,7 +744,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 保存排序顺序
   Future<void> _saveSortOrder() async {
-    final newOrder = _filteredAccounts.map((account) => account.id).toList();
+    final newOrder = _accounts.map((account) => account.id).toList();
+    _filteredAccounts = List.from(_accounts);
     final success = await _storageService.updateAccountOrder(newOrder);
     if (success) {
       setState(() {

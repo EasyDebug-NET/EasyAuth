@@ -12,7 +12,7 @@ class AboutScreen extends StatefulWidget {
 }
 
 class _AboutScreenState extends State<AboutScreen> {
-  late PackageInfo _packageInfo;
+  PackageInfo? _packageInfo;
   bool _isLoading = true;
 
   @override
@@ -22,10 +22,16 @@ class _AboutScreenState extends State<AboutScreen> {
   }
 
   Future<void> _loadPackageInfo() async {
-    _packageInfo = await PackageInfo.fromPlatform();
-    setState(() {
-      _isLoading = false;
-    });
+    try {
+      _packageInfo = await PackageInfo.fromPlatform();
+    } catch (e) {
+      _packageInfo = null;
+    }
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -60,7 +66,7 @@ class _AboutScreenState extends State<AboutScreen> {
             _isLoading
                 ? const CircularProgressIndicator()
                 : Text(
-                    '版本 ${_packageInfo.version}',
+                    '版本 ${_packageInfo?.version ?? "未知"}',
                     style: StyleUtils.subtitleTextStyle(context),
                   ),
             const SizedBox(height: 96),

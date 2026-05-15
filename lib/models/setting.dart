@@ -75,12 +75,16 @@ class S3Config {
   /// 存储路径
   final String backupDir;
 
+  /// 区域（用于 AWS Signature V4 签名）
+  final String? region;
+
   const S3Config({
     required this.endpoint,
     required this.accessKeyId,
     required this.secretAccessKey,
     required this.bucketName,
     this.backupDir = '',
+    this.region,
   });
 
   /// 序列化为 JSON Map
@@ -91,6 +95,7 @@ class S3Config {
       'secretAccessKey': secretAccessKey,
       'bucketName': bucketName,
       'backupDir': backupDir,
+      'region': region,
     };
   }
 
@@ -102,6 +107,7 @@ class S3Config {
       secretAccessKey: json['secretAccessKey'] ?? '',
       bucketName: json['bucketName'] ?? '',
       backupDir: json['backupDir'] ?? '',
+      region: json['region'] as String?,
     );
   }
 
@@ -112,6 +118,7 @@ class S3Config {
     String? secretAccessKey,
     String? bucketName,
     String? backupDir,
+    String? region,
   }) {
     return S3Config(
       endpoint: endpoint ?? this.endpoint,
@@ -119,6 +126,7 @@ class S3Config {
       secretAccessKey: secretAccessKey ?? this.secretAccessKey,
       bucketName: bucketName ?? this.bucketName,
       backupDir: backupDir ?? this.backupDir,
+      region: region ?? this.region,
     );
   }
 }

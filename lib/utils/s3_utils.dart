@@ -30,8 +30,9 @@ class S3Utils {
     String bucketName,
     String objectKey,
     String accessKeyId,
-    String secretAccessKey,
-  ) async {
+    String secretAccessKey, {
+    String? region,
+  }) async {
     final file = File(filePath);
     final fileBytes = await file.readAsBytes();
 
@@ -46,8 +47,7 @@ class S3Utils {
     );
 
     // 构建签名范围
-    final region = 'us-east-1'; // 默认区域，可根据实际情况调整
-    final scope = AWSCredentialScope(region: region, service: AWSService.s3);
+    final scope = AWSCredentialScope(region: region ?? 'cn-east-1', service: AWSService.s3);
 
     // 构建 AWS HTTP 请求
     final awsRequest = AWSHttpRequest(
@@ -94,8 +94,9 @@ class S3Utils {
     String objectKey,
     String accessKeyId,
     String secretAccessKey,
-    String savePath,
-  ) async {
+    String savePath, {
+    String? region,
+  }) async {
     final uri = Uri.parse('$endpoint/$objectKey');
 
     // 构建 AWS 签名
@@ -107,8 +108,7 @@ class S3Utils {
     );
 
     // 构建签名范围
-    final region = 'us-east-1'; // 默认区域，可根据实际情况调整
-    final scope = AWSCredentialScope(region: region, service: AWSService.s3);
+    final scope = AWSCredentialScope(region: region ?? 'cn-east-1', service: AWSService.s3);
 
     // 构建 AWS HTTP 请求
     final awsRequest = AWSHttpRequest(
@@ -136,7 +136,13 @@ class S3Utils {
     }
 
     final file = File(savePath);
-    await response.stream.pipe(file.openWrite());
+    final sink = file.openWrite();
+    try {
+      await response.stream.pipe(sink);
+    } catch (e) {
+      await sink.close();
+      rethrow;
+    }
     return file;
   }
 
@@ -150,8 +156,9 @@ class S3Utils {
     String endpoint,
     String bucketName,
     String accessKeyId,
-    String secretAccessKey,
-  ) async {
+    String secretAccessKey, {
+    String? region,
+  }) async {
     final uri = Uri.parse('$endpoint/$bucketName?list-type=2');
 
     // 构建 AWS 签名
@@ -163,8 +170,7 @@ class S3Utils {
     );
 
     // 构建签名范围
-    final region = 'us-east-1'; // 默认区域，可根据实际情况调整
-    final scope = AWSCredentialScope(region: region, service: AWSService.s3);
+    final scope = AWSCredentialScope(region: region ?? 'cn-east-1', service: AWSService.s3);
 
     // 构建 AWS HTTP 请求
     final awsRequest = AWSHttpRequest(
@@ -232,8 +238,9 @@ class S3Utils {
     String bucketName,
     String objectKey,
     String accessKeyId,
-    String secretAccessKey,
-  ) async {
+    String secretAccessKey, {
+    String? region,
+  }) async {
     /// 构建请求 URI
     final uri = Uri.parse('$endpoint/$objectKey');
 
@@ -246,8 +253,7 @@ class S3Utils {
     );
 
     /// 构建签名范围
-    final region = 'us-east-1'; // 默认区域，可根据实际情况调整
-    final scope = AWSCredentialScope(region: region, service: AWSService.s3);
+    final scope = AWSCredentialScope(region: region ?? 'cn-east-1', service: AWSService.s3);
 
     /// 构建 AWS HTTP 请求
     final awsRequest = AWSHttpRequest(
@@ -280,9 +286,10 @@ class S3Utils {
     String endpoint,
     String bucketName,
     String accessKeyId,
-    String secretAccessKey,
-  ) async {
-    return listObjects(endpoint, bucketName, accessKeyId, secretAccessKey);
+    String secretAccessKey, {
+    String? region,
+  }) async {
+    return listObjects(endpoint, bucketName, accessKeyId, secretAccessKey, region: region);
   }
 
   /// 删除文件（与 WebDavUtils 方法名称保持一致）
@@ -291,14 +298,16 @@ class S3Utils {
     String bucketName,
     String objectKey,
     String accessKeyId,
-    String secretAccessKey,
-  ) async {
+    String secretAccessKey, {
+    String? region,
+  }) async {
     return deleteObject(
       endpoint,
       bucketName,
       objectKey,
       accessKeyId,
       secretAccessKey,
+      region: region,
     );
   }
 }

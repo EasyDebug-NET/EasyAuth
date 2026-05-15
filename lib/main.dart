@@ -86,6 +86,7 @@ class _MyAppState extends State<MyApp> {
 
   /// 更新截屏锁状态
   Future<void> _updateScreenshotLock() async {
+    if (_isLoading) return;
     if (_setting.securitySetting.screenshotLockEnabled) {
       // 防止截屏
       await _setSecureWindow(true);

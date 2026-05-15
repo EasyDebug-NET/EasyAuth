@@ -141,6 +141,7 @@ class BackupService {
             objectKey,
             setting.backupSetting.s3Config.accessKeyId,
             setting.backupSetting.s3Config.secretAccessKey,
+            region: setting.backupSetting.s3Config.region,
           );
         }
       } on SocketException catch (e) {
@@ -250,6 +251,7 @@ class BackupService {
             setting.backupSetting.s3Config.bucketName,
             setting.backupSetting.s3Config.accessKeyId,
             setting.backupSetting.s3Config.secretAccessKey,
+            region: setting.backupSetting.s3Config.region,
           );
           // 过滤并排序备份文件
           List<String> backupFiles;
@@ -302,6 +304,7 @@ class BackupService {
             setting.backupSetting.s3Config.accessKeyId,
             setting.backupSetting.s3Config.secretAccessKey,
             savePath,
+            region: setting.backupSetting.s3Config.region,
           );
         } else {
           throw ConfigException('不支持的备份类型');
@@ -382,6 +385,7 @@ class BackupService {
       final s3BucketName =
           await _secureStorage.read(key: 's3_bucket_name') ?? '';
       final s3BackupDir = await _secureStorage.read(key: 's3_backup_dir') ?? '';
+      final s3Region = await _secureStorage.read(key: 's3_region');
       final appLockEnabledStr =
           await _secureStorage.read(key: 'app_lock_enabled') ?? '0';
       final appLockEnabled =
@@ -405,6 +409,7 @@ class BackupService {
             secretAccessKey: s3SecretAccessKey,
             bucketName: s3BucketName,
             backupDir: s3BackupDir,
+            region: s3Region,
           ),
         ),
         securitySetting: SecuritySetting(
@@ -470,6 +475,10 @@ class BackupService {
     await _secureStorage.write(
       key: 's3_backup_dir',
       value: setting.backupSetting.s3Config.backupDir,
+    );
+    await _secureStorage.write(
+      key: 's3_region',
+      value: setting.backupSetting.s3Config.region,
     );
 
     await _secureStorage.write(
@@ -581,6 +590,9 @@ class BackupService {
     );
 
     final zipData = ZipEncoder().encode(archive);
+    if (zipData == null) {
+      throw Exception('ZIP 打包失败');
+    }
 
     final backupFile = File('$tempDir/backup.zip');
     await backupFile.writeAsBytes(zipData);
@@ -763,6 +775,7 @@ class BackupService {
         setting.backupSetting.s3Config.bucketName,
         setting.backupSetting.s3Config.accessKeyId,
         setting.backupSetting.s3Config.secretAccessKey,
+        region: setting.backupSetting.s3Config.region,
       );
 
       /// 过滤备份文件（与 restoreBackup 保持一致，按 backupDir 过滤）
@@ -823,6 +836,7 @@ class BackupService {
         setting.backupSetting.s3Config.bucketName,
         setting.backupSetting.s3Config.accessKeyId,
         setting.backupSetting.s3Config.secretAccessKey,
+        region: setting.backupSetting.s3Config.region,
       );
 
       /// 过滤备份文件
@@ -838,6 +852,7 @@ class BackupService {
           file,
           setting.backupSetting.s3Config.accessKeyId,
           setting.backupSetting.s3Config.secretAccessKey,
+          region: setting.backupSetting.s3Config.region,
         );
       }
     }

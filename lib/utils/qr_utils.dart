@@ -295,20 +295,26 @@ class QrUtils {
   }
 
   static int _skipField(Uint8List data, int offset, int wireType) {
+    int newOffset;
     switch (wireType) {
       case 0: // varint
         final value = _readVarint(data, offset);
-        return offset + _varintSize(value);
+        newOffset = offset + _varintSize(value);
+        break;
       case 1: // 64-bit
-        return offset + 8;
+        newOffset = offset + 8;
+        break;
       case 2: // length-delimited
         final length = _readVarint(data, offset);
-        return offset + _varintSize(length) + length;
+        newOffset = offset + _varintSize(length) + length;
+        break;
       case 5: // 32-bit
-        return offset + 4;
+        newOffset = offset + 4;
+        break;
       default:
         throw Exception('未知的wire type: $wireType');
     }
+    return newOffset > data.length ? data.length : newOffset;
   }
 
   // ── Protobuf 手动编码 ──────────────────────────────────────
@@ -412,7 +418,7 @@ class QrUtils {
   static int _readVarint(Uint8List data, int offset) {
     int value = 0;
     int shift = 0;
-    while (offset < data.length) {
+    while (offset < data.length && shift < 64) {
       final byte = data[offset++];
       value |= (byte & 0x7F) << shift;
       if ((byte & 0x80) == 0) break;
