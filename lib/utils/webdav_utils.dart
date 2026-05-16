@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 
+import 'exceptions.dart';
+
 /// WebDAV 工具类
 ///
 /// 提供 WebDAV 存储服务的基本操作，包括上传、下载和列出文件。
@@ -49,7 +51,7 @@ class WebDavUtils {
         .timeout(
           const Duration(seconds: 30),
           onTimeout: () {
-            throw HttpException('WebDAV 上传超时', uri: uri);
+            throw NetworkException('WebDAV 上传超时', details: uri.toString());
           },
         );
 
@@ -82,7 +84,7 @@ class WebDavUtils {
               .timeout(
                 const Duration(seconds: 30),
                 onTimeout: () {
-                  throw HttpException('WebDAV 创建目录超时', uri: parentUri);
+                  throw NetworkException('WebDAV 创建目录超时', details: parentUri.toString());
                 },
               );
           final mkcolBody = await streamedResponse.stream.bytesToString();
@@ -106,7 +108,7 @@ class WebDavUtils {
                 .timeout(
                   const Duration(seconds: 30),
                   onTimeout: () {
-                    throw HttpException('WebDAV 上传超时', uri: uri);
+                    throw NetworkException('WebDAV 上传超时', details: uri.toString());
                   },
                 );
             debugPrint(
@@ -121,9 +123,9 @@ class WebDavUtils {
             debugPrint(
               'WebDAV 重试上传失败: statusCode=${retryResponse.statusCode}, body=$retryBody',
             );
-            throw HttpException(
+            throw NetworkException(
               'WebDAV 上传失败: HTTP ${retryResponse.statusCode}, $retryBody',
-              uri: uri,
+              details: uri.toString(),
             );
           }
         } finally {
@@ -136,9 +138,9 @@ class WebDavUtils {
     debugPrint(
       'WebDAV 上传失败: statusCode=${response.statusCode}, body=$responseBody',
     );
-    throw HttpException(
+    throw NetworkException(
       'WebDAV 上传失败: HTTP ${response.statusCode}, $responseBody',
-      uri: uri,
+      details: uri.toString(),
     );
   }
 
@@ -163,7 +165,7 @@ class WebDavUtils {
     final response = await request.send().timeout(
       const Duration(seconds: 30),
       onTimeout: () {
-        throw HttpException('WebDAV 下载超时', uri: uri);
+        throw NetworkException('WebDAV 下载超时', details: uri.toString());
       },
     );
     debugPrint('WebDAV 下载响应: statusCode=${response.statusCode}');
@@ -172,9 +174,9 @@ class WebDavUtils {
       debugPrint(
         'WebDAV 下载失败: statusCode=${response.statusCode}, body=$responseBody',
       );
-      throw HttpException(
+      throw NetworkException(
         'WebDAV 下载失败: HTTP ${response.statusCode}, $responseBody',
-        uri: uri,
+        details: uri.toString(),
       );
     }
 
@@ -216,7 +218,7 @@ class WebDavUtils {
     final response = await request.send().timeout(
       const Duration(seconds: 30),
       onTimeout: () {
-        throw HttpException('WebDAV 列出文件超时', uri: uri);
+        throw NetworkException('WebDAV 列出文件超时', details: uri.toString());
       },
     );
     if (response.statusCode != 207) {
@@ -224,9 +226,9 @@ class WebDavUtils {
       debugPrint(
         'WebDAV 列出文件失败: statusCode=${response.statusCode}, body=$responseBody',
       );
-      throw HttpException(
+      throw NetworkException(
         'WebDAV 列出文件失败: HTTP ${response.statusCode}, $responseBody',
-        uri: uri,
+        details: uri.toString(),
       );
     }
 
@@ -299,11 +301,11 @@ class WebDavUtils {
     final response = await request.send().timeout(
       const Duration(seconds: 30),
       onTimeout: () {
-        throw HttpException('WebDAV 删除超时', uri: uri);
+        throw NetworkException('WebDAV 删除超时', details: uri.toString());
       },
     );
     if (response.statusCode != 204 && response.statusCode != 200) {
-      throw HttpException('WebDAV 删除失败: HTTP ${response.statusCode}', uri: uri);
+      throw NetworkException('WebDAV 删除失败: HTTP ${response.statusCode}', details: uri.toString());
     }
   }
 }

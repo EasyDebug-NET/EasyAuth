@@ -5,6 +5,8 @@ import 'package:aws_signature_v4/aws_signature_v4.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 
+import 'exceptions.dart';
+
 /// S3 工具类
 ///
 /// 提供 S3 兼容存储服务的基本操作，包括上传、下载和列出文件。
@@ -72,11 +74,11 @@ class S3Utils {
     final response = await request.send().timeout(
       const Duration(seconds: 30),
       onTimeout: () {
-        throw HttpException('S3 上传超时', uri: uri);
+        throw NetworkException('S3 上传超时', details: uri.toString());
       },
     );
     if (response.statusCode != 200) {
-      throw HttpException('S3 上传失败: HTTP ${response.statusCode}', uri: uri);
+      throw NetworkException('S3 上传失败: HTTP ${response.statusCode}', details: uri.toString());
     }
   }
 
@@ -128,11 +130,11 @@ class S3Utils {
     final response = await request.send().timeout(
       const Duration(seconds: 30),
       onTimeout: () {
-        throw HttpException('S3 下载超时', uri: uri);
+        throw NetworkException('S3 下载超时', details: uri.toString());
       },
     );
     if (response.statusCode != 200) {
-      throw HttpException('S3 下载失败: HTTP ${response.statusCode}', uri: uri);
+      throw NetworkException('S3 下载失败: HTTP ${response.statusCode}', details: uri.toString());
     }
 
     final file = File(savePath);
@@ -190,11 +192,11 @@ class S3Utils {
     final response = await request.send().timeout(
       const Duration(seconds: 30),
       onTimeout: () {
-        throw HttpException('S3 列出文件超时', uri: uri);
+        throw NetworkException('S3 列出文件超时', details: uri.toString());
       },
     );
     if (response.statusCode != 200) {
-      throw HttpException('S3 列出文件失败: HTTP ${response.statusCode}', uri: uri);
+      throw NetworkException('S3 列出文件失败: HTTP ${response.statusCode}', details: uri.toString());
     }
 
     final responseBody = await response.stream.bytesToString();
@@ -273,11 +275,11 @@ class S3Utils {
     final response = await request.send().timeout(
       const Duration(seconds: 30),
       onTimeout: () {
-        throw HttpException('S3 删除超时', uri: uri);
+        throw NetworkException('S3 删除超时', details: uri.toString());
       },
     );
     if (response.statusCode != 204) {
-      throw HttpException('S3 删除失败: HTTP ${response.statusCode}', uri: uri);
+      throw NetworkException('S3 删除失败: HTTP ${response.statusCode}', details: uri.toString());
     }
   }
 

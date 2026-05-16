@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:base32/base32.dart';
 
+import 'exceptions.dart';
+
 /// 二维码数据解析与生成工具类
 ///
 /// 用于解析和生成 Google Authenticator 迁移二维码数据（otpauth-migration://offline 格式）。
@@ -25,7 +27,7 @@ class QrUtils {
   static List<Map<String, dynamic>> parseMigrationData(String qrCode) {
     qrCode = qrCode.trim();
     if (!qrCode.startsWith('otpauth-migration://offline?data=')) {
-      throw Exception('无效的迁移二维码');
+      throw ValidationException('无效的迁移二维码');
     }
 
     var base64 = qrCode.replaceFirst('otpauth-migration://offline?data=', '');
@@ -40,7 +42,7 @@ class QrUtils {
     try {
       bytes = base64Url.decode(paddedBase64);
     } catch (e) {
-      throw Exception('Base64解码失败: $e');
+      throw ValidationException('Base64解码失败', details: e.toString());
     }
 
     final payload = _decodeMigrationPayload(bytes);
@@ -73,7 +75,7 @@ class QrUtils {
     }
 
     if (accounts.isEmpty) {
-      throw Exception('无效的二维码数据格式');
+      throw ValidationException('无效的二维码数据格式');
     }
 
     return accounts;
@@ -312,7 +314,7 @@ class QrUtils {
         newOffset = offset + 4;
         break;
       default:
-        throw Exception('未知的wire type: $wireType');
+        throw ValidationException('未知的wire type: $wireType');
     }
     return newOffset > data.length ? data.length : newOffset;
   }

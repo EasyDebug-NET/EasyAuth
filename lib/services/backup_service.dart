@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
+import 'package:flutter/foundation.dart' hide Key;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -150,12 +150,8 @@ class BackupService {
           details: '请检查网络连接是否正常',
           originalException: e,
         );
-      } on HttpException catch (e) {
-        throw NetworkException(
-          '上传备份失败',
-          details: e.message,
-          originalException: e,
-        );
+      } on NetworkException {
+        rethrow;
       } catch (e) {
         throw NetworkException(
           '上传备份时发生错误',
@@ -168,30 +164,47 @@ class BackupService {
       try {
         final historyCount = setting.backupSetting.historyCount;
         if (historyCount > 0) {
-          List<String> allFiles = [];
+          List<String> backupFiles;
           if (setting.backupSetting.type == BackupType.webdav) {
             final listUrl = buildWebDavDirUrl(
               setting.backupSetting.webDavConfig.url,
               setting.backupSetting.webDavConfig.backupDir,
             );
-            allFiles = await WebDavUtils.listFiles(
+            final allFiles = await WebDavUtils.listFiles(
               listUrl,
               setting.backupSetting.webDavConfig.username,
               setting.backupSetting.webDavConfig.password,
             );
+            backupFiles = allFiles
+                .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+                .toList()
+              ..sort((a, b) => b.compareTo(a));
           } else if (setting.backupSetting.type == BackupType.s3) {
-            allFiles = await S3Utils.listFiles(
+            final allFiles = await S3Utils.listFiles(
               setting.backupSetting.s3Config.endpoint,
               setting.backupSetting.s3Config.bucketName,
               setting.backupSetting.s3Config.accessKeyId,
               setting.backupSetting.s3Config.secretAccessKey,
               region: setting.backupSetting.s3Config.region,
             );
+            final backupDir = setting.backupSetting.s3Config.backupDir;
+            backupFiles = allFiles
+                .where((f) {
+                  if (backupDir.isNotEmpty && !f.startsWith(backupDir)) {
+                    return false;
+                  }
+                  final name = backupDir.isNotEmpty
+                      ? f
+                          .substring(backupDir.length)
+                          .replaceFirst(RegExp(r'^/'), '')
+                      : f;
+                  return name.startsWith('backup_') && name.endsWith('.zip');
+                })
+                .toList()
+              ..sort((a, b) => b.compareTo(a));
+          } else {
+            backupFiles = [];
           }
-          final backupFiles = allFiles
-              .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
-              .toList()
-            ..sort((a, b) => b.compareTo(a));
 
           if (backupFiles.length > historyCount) {
             final toDelete = backupFiles.sublist(historyCount);
@@ -218,14 +231,14 @@ class BackupService {
                     region: setting.backupSetting.s3Config.region,
                   );
                 }
-              } catch (_) {
-                // 删除旧版本失败不影响主流程
+              } catch (e) {
+                debugPrint('清理旧备份失败: $file, $e');
               }
             }
           }
         }
-      } catch (_) {
-        // 清理旧版本失败不影响主流程
+      } catch (e) {
+        debugPrint('清理旧版本失败: $e');
       }
 
       // 清理临时文件
@@ -247,9 +260,10 @@ class BackupService {
   /// 执行恢复操作
   ///
   /// [setting] 应用设置
+  /// [specificFile] 指定要恢复的文件名（不含目录前缀），为 null 则恢复最新版本
   ///
   /// 执行步骤：
-  /// 1. 下载最新备份
+  /// 1. 下载备份（最新或指定版本）
   /// 2. 解密并解压
   /// 3. 恢复数据
   /// 4. 清理临时文件
@@ -258,49 +272,25 @@ class BackupService {
   /// - [StorageException] 当没有找到备份文件或解密失败时
   /// - [NetworkException] 当网络请求失败时
   /// - [ConfigException] 当配置无效时
-  Future<void> restoreBackup(Setting setting) async {
+  Future<void> restoreBackup(Setting setting, {String? specificFile}) async {
     try {
       // 验证配置
       if (!isConfigValid(setting)) {
         throw ConfigException('恢复配置无效', details: '请检查备份参数是否完整');
       }
 
-      // 下载最新备份
+      // 下载备份
       final tempDir = await getTemporaryDirectory();
       final savePath = '${tempDir.path}/backup.zip';
       File backupFile;
 
       try {
         if (setting.backupSetting.type == BackupType.webdav) {
-          // 使用 WebDAV 工具类获取文件列表
-          final listUrl = buildWebDavDirUrl(
-            setting.backupSetting.webDavConfig.url,
-            setting.backupSetting.webDavConfig.backupDir,
-          );
-          final files = await WebDavUtils.listFiles(
-            listUrl,
-            setting.backupSetting.webDavConfig.username,
-            setting.backupSetting.webDavConfig.password,
-          );
-          // 过滤并排序备份文件
-          final backupFiles =
-              files
-                  .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
-                  .toList()
-                ..sort((a, b) => b.compareTo(a));
-
-          if (backupFiles.isEmpty) {
-            throw StorageException(
-              '没有找到备份文件',
-              details: 'WebDAV 存储中没有找到备份文件，请确保已经执行过备份操作',
-            );
-          }
-          // 下载最新备份
-          final latestBackup = backupFiles.first;
+          final fileName = specificFile ?? await _findLatestBackupWebDav(setting);
           final url = buildWebDavFileUrl(
             setting.backupSetting.webDavConfig.url,
             setting.backupSetting.webDavConfig.backupDir,
-            latestBackup,
+            fileName,
           );
           backupFile = await WebDavUtils.downloadFile(
             url,
@@ -309,57 +299,11 @@ class BackupService {
             savePath,
           );
         } else if (setting.backupSetting.type == BackupType.s3) {
-          // 使用 S3 工具类获取文件列表
-          final objects = await S3Utils.listObjects(
-            setting.backupSetting.s3Config.endpoint,
-            setting.backupSetting.s3Config.bucketName,
-            setting.backupSetting.s3Config.accessKeyId,
-            setting.backupSetting.s3Config.secretAccessKey,
-            region: setting.backupSetting.s3Config.region,
-          );
-          // 过滤并排序备份文件
-          List<String> backupFiles;
-          if (setting.backupSetting.s3Config.backupDir.isEmpty) {
-            backupFiles = objects.where((f) => f.endsWith('.zip')).toList()
-              ..sort((a, b) => b.compareTo(a));
+          String objectKey;
+          if (specificFile != null) {
+            objectKey = _buildS3ObjectKey(setting, specificFile);
           } else {
-            backupFiles =
-                objects
-                    .where(
-                      (f) =>
-                          f.startsWith(
-                            setting.backupSetting.s3Config.backupDir,
-                          ) &&
-                          f.endsWith('.zip'),
-                    )
-                    .map(
-                      (f) => f
-                          .substring(
-                            setting.backupSetting.s3Config.backupDir.length,
-                          )
-                          .replaceFirst(RegExp(r'^/'), ''),
-                    )
-                    .toList()
-                  ..sort((a, b) => b.compareTo(a));
-          }
-
-          if (backupFiles.isEmpty) {
-            throw StorageException(
-              '没有找到备份文件',
-              details: 'S3 存储中没有找到备份文件，请确保已经执行过备份操作',
-            );
-          }
-          // 下载最新备份
-          final latestBackup = backupFiles.first;
-          String objectKey = latestBackup;
-          if (setting.backupSetting.s3Config.backupDir.isNotEmpty) {
-            if (setting.backupSetting.s3Config.backupDir.endsWith('/')) {
-              objectKey =
-                  '${setting.backupSetting.s3Config.backupDir}$latestBackup';
-            } else {
-              objectKey =
-                  '${setting.backupSetting.s3Config.backupDir}/$latestBackup';
-            }
+            objectKey = await _findLatestBackupS3(setting);
           }
           backupFile = await S3Utils.downloadFile(
             setting.backupSetting.s3Config.endpoint,
@@ -379,12 +323,8 @@ class BackupService {
           details: '请检查网络连接是否正常',
           originalException: e,
         );
-      } on HttpException catch (e) {
-        throw NetworkException(
-          '下载备份失败',
-          details: e.message,
-          originalException: e,
-        );
+      } on NetworkException {
+        rethrow;
       } catch (e) {
         throw NetworkException(
           '下载备份时发生错误',
@@ -424,6 +364,70 @@ class BackupService {
         originalException: e is Exception ? e : null,
       );
     }
+  }
+
+  /// 查找 WebDAV 上最新的备份文件名
+  Future<String> _findLatestBackupWebDav(Setting setting) async {
+    final listUrl = buildWebDavDirUrl(
+      setting.backupSetting.webDavConfig.url,
+      setting.backupSetting.webDavConfig.backupDir,
+    );
+    final files = await WebDavUtils.listFiles(
+      listUrl,
+      setting.backupSetting.webDavConfig.username,
+      setting.backupSetting.webDavConfig.password,
+    );
+    final backupFiles = files
+        .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    if (backupFiles.isEmpty) {
+      throw StorageException(
+        '没有找到备份文件',
+        details: 'WebDAV 存储中没有找到备份文件，请确保已经执行过备份操作',
+      );
+    }
+    return backupFiles.first;
+  }
+
+  /// 查找 S3 上最新的备份文件 object key
+  Future<String> _findLatestBackupS3(Setting setting) async {
+    final objects = await S3Utils.listObjects(
+      setting.backupSetting.s3Config.endpoint,
+      setting.backupSetting.s3Config.bucketName,
+      setting.backupSetting.s3Config.accessKeyId,
+      setting.backupSetting.s3Config.secretAccessKey,
+      region: setting.backupSetting.s3Config.region,
+    );
+    final backupDir = setting.backupSetting.s3Config.backupDir;
+    final backupFiles = objects
+        .where((f) {
+          if (backupDir.isNotEmpty && !f.startsWith(backupDir)) {
+            return false;
+          }
+          final name = backupDir.isNotEmpty
+              ? f.substring(backupDir.length).replaceFirst(RegExp(r'^/'), '')
+              : f;
+          return name.startsWith('backup_') && name.endsWith('.zip');
+        })
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    if (backupFiles.isEmpty) {
+      throw StorageException(
+        '没有找到备份文件',
+        details: 'S3 存储中没有找到备份文件，请确保已经执行过备份操作',
+      );
+    }
+    return backupFiles.first;
+  }
+
+  /// 构建 S3 完整 object key（文件名 + backupDir 前缀）
+  String _buildS3ObjectKey(Setting setting, String fileName) {
+    final backupDir = setting.backupSetting.s3Config.backupDir;
+    if (backupDir.isEmpty) return fileName;
+    return backupDir.endsWith('/') ? '$backupDir$fileName' : '$backupDir/$fileName';
   }
 
   /// 加载应用设置
@@ -663,9 +667,6 @@ class BackupService {
     );
 
     final zipData = ZipEncoder().encode(archive);
-    if (zipData == null) {
-      throw Exception('ZIP 打包失败');
-    }
 
     final backupFile = File('$tempDir/backup.zip');
     await backupFile.writeAsBytes(zipData);
@@ -698,14 +699,14 @@ class BackupService {
       // 提取盐值
       final saltFile = archive.files.firstWhere(
         (file) => file.name == _saltFileName,
-        orElse: () => throw Exception('备份文件格式错误：缺少盐值'),
+        orElse: () => throw StorageException('备份文件格式错误：缺少盐值'),
       );
       final salt = saltFile.content as List<int>;
 
       // 提取加密数据
       final dataFile = archive.files.firstWhere(
         (file) => file.name == _dataFileName,
-        orElse: () => throw Exception('备份文件格式错误：缺少数据'),
+        orElse: () => throw StorageException('备份文件格式错误：缺少数据'),
       );
       final encryptedBytes = dataFile.content as List<int>;
 
@@ -729,7 +730,7 @@ class BackupService {
     } catch (e) {
       if (e is ConfigException) rethrow;
       // AES-GCM 解密失败通常因为密码错误或数据损坏
-      throw Exception('恢复数据解密失败，请确认备份密码是否正确。');
+      throw StorageException('恢复数据解密失败，请确认备份密码是否正确。');
     }
   }
 
@@ -912,9 +913,18 @@ class BackupService {
         region: setting.backupSetting.s3Config.region,
       );
 
-      /// 过滤备份文件
+      /// 过滤备份文件（S3 返回完整 key，需按 backupDir 前缀过滤）
+      final backupDir = setting.backupSetting.s3Config.backupDir;
       final backupFiles = objects
-          .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+          .where((f) {
+            if (backupDir.isNotEmpty && !f.startsWith(backupDir)) {
+              return false;
+            }
+            final name = backupDir.isNotEmpty
+                ? f.substring(backupDir.length).replaceFirst(RegExp(r'^/'), '')
+                : f;
+            return name.startsWith('backup_') && name.endsWith('.zip');
+          })
           .toList();
 
       /// 删除所有备份文件

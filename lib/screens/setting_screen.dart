@@ -892,6 +892,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
       _isLoading = true;
     });
 
+    String? errorMsg;
     try {
       final backupService = BackupService();
 
@@ -933,19 +934,81 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
       }
 
       if (mounted) {
-        StyleUtils.normalSnackBar(context, '删除成功');
+        StyleUtils.successSnackBar(context, '删除成功');
         _loadBackupFiles();
       }
     } catch (e) {
-      if (mounted) {
-        StyleUtils.normalSnackBar(context, '删除失败: ${e.toString()}');
-      }
+      errorMsg = e.toString();
     } finally {
       setState(() {
         _isLoading = false;
         _selectedFiles.clear();
         _selectAll = false;
       });
+    }
+
+    if (errorMsg != null && mounted) {
+      StyleUtils.errorSnackBar(context, '删除失败', errorMsg!);
+    }
+  }
+
+  /// 恢复指定版本的备份文件
+  ///
+  /// [fileName] 备份文件名
+  ///
+  /// 执行步骤：
+  /// 1. 显示确认对话框
+  /// 2. 设置加载状态
+  /// 3. 调用备份服务恢复指定文件
+  /// 4. 显示恢复结果
+  Future<void> _restoreFile(String fileName) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('确认恢复'),
+        content: Text('确定要恢复到 "$fileName" 吗？\n恢复将覆盖当前所有数据。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('确定恢复'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != true) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    String? errorMsg;
+    try {
+      final backupService = BackupService();
+      await backupService.restoreBackup(_config, specificFile: fileName);
+
+      if (mounted) {
+        StyleUtils.successSnackBar(context, '恢复成功');
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      errorMsg = e.toString();
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+
+    if (errorMsg != null && mounted) {
+      StyleUtils.errorSnackBar(context, '恢复失败', errorMsg!);
     }
   }
 
@@ -1028,6 +1091,11 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
                       file.dateTime != null
                           ? '${file.dateTime!.year}-${file.dateTime!.month.toString().padLeft(2, '0')}-${file.dateTime!.day.toString().padLeft(2, '0')} ${file.dateTime!.hour.toString().padLeft(2, '0')}:${file.dateTime!.minute.toString().padLeft(2, '0')}:${file.dateTime!.second.toString().padLeft(2, '0')}'
                           : '未知时间',
+                    ),
+                    secondary: IconButton(
+                      icon: const Icon(Icons.restore),
+                      tooltip: '恢复',
+                      onPressed: () => _restoreFile(file.name),
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
                   );
@@ -1665,7 +1733,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   TextFormField(
                     controller: _s3RegionController,
                     decoration: const InputDecoration(
-                      labelText: 'Region ( 选填，默认us-east-1)',
+                      labelText: 'Region ( 选填，默认cn-east-1)',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (value) {

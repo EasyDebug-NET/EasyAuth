@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../services/otp_service.dart';
+import '../utils/exceptions.dart';
 import '../utils/style_utils.dart';
 
 /// 扫描二维码添加2FA账户页面
@@ -145,7 +146,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
     try {
       // 验证二维码格式
       if (!data.startsWith('otpauth://')) {
-        throw FormatException('二维码格式错误，必须是 otpauth:// 格式的URI');
+        throw ValidationException('二维码格式错误，必须是 otpauth:// 格式的URI');
       }
 
       final params = OtpService.parseOtpAuthUri(data);
@@ -153,12 +154,12 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
       // 验证必要参数
       final secret = params['secret'] as String;
       if (secret.isEmpty) {
-        throw FormatException('二维码缺少必要的密钥信息（secret）');
+        throw ValidationException('二维码缺少必要的密钥信息（secret）');
       }
 
       // 验证密钥格式（Base32）
       if (!_isValidBase32(secret)) {
-        throw FormatException('密钥格式无效，必须是Base32编码');
+        throw ValidationException('密钥格式无效，必须是Base32编码');
       }
 
       // 转换secret为大写，确保Base32编码格式正确
@@ -183,8 +184,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
         Navigator.pop(context, true);
         StyleUtils.successSnackBar(context, '添加成功');
       }
-    } on FormatException catch (e) {
-      // 格式错误，显示详细的错误信息
+    } on ValidationException catch (e) {
       _showErrorDialog('二维码格式错误', e.message);
     } catch (e) {
       // 其他错误

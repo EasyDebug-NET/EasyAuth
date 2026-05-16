@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:base32/base32.dart';
 import 'package:crypto/crypto.dart';
 
+import '../utils/exceptions.dart';
+
 /// OTP 服务类，用于计算基于时间 (TOTP) 或计数器 (HOTP) 的一次性密码
 class OtpService {
   /// 计算动态码（TOTP 或 HOTP）
@@ -112,13 +114,13 @@ class OtpService {
 
     // 检查协议
     if (parsedUri.scheme != 'otpauth') {
-      throw Exception('Invalid OTP URI: scheme must be otpauth');
+      throw ValidationException('Invalid OTP URI: scheme must be otpauth');
     }
 
     // 检查类型
     final type = parsedUri.host;
     if (type != 'totp' && type != 'hotp') {
-      throw Exception('Unsupported OTP type: $type');
+      throw ValidationException('Unsupported OTP type: $type');
     }
 
     // 解析路径获取issuer和name
