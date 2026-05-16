@@ -181,10 +181,14 @@ class BackupSetting {
   /// S3 配置
   final S3Config s3Config;
 
+  /// 保留的历史版本数
+  final int historyCount;
+
   const BackupSetting({
     required this.type,
     required this.webDavConfig,
     required this.s3Config,
+    this.historyCount = 10,
   });
 
   /// 序列化为 JSON Map
@@ -193,6 +197,7 @@ class BackupSetting {
       'type': type.name,
       'webDavConfig': webDavConfig.toJson(),
       's3Config': s3Config.toJson(),
+      'historyCount': historyCount,
     };
   }
 
@@ -205,6 +210,7 @@ class BackupSetting {
       ),
       webDavConfig: WebDavConfig.fromJson(json['webDavConfig'] ?? {}),
       s3Config: S3Config.fromJson(json['s3Config'] ?? {}),
+      historyCount: json['historyCount'] as int? ?? 10,
     );
   }
 
@@ -213,11 +219,13 @@ class BackupSetting {
     BackupType? type,
     WebDavConfig? webDavConfig,
     S3Config? s3Config,
+    int? historyCount,
   }) {
     return BackupSetting(
       type: type ?? this.type,
       webDavConfig: webDavConfig ?? this.webDavConfig,
       s3Config: s3Config ?? this.s3Config,
+      historyCount: historyCount ?? this.historyCount,
     );
   }
 }

@@ -164,6 +164,70 @@ class BackupService {
         );
       }
 
+      // 自动清理旧版本
+      try {
+        final historyCount = setting.backupSetting.historyCount;
+        if (historyCount > 0) {
+          List<String> allFiles = [];
+          if (setting.backupSetting.type == BackupType.webdav) {
+            final listUrl = buildWebDavDirUrl(
+              setting.backupSetting.webDavConfig.url,
+              setting.backupSetting.webDavConfig.backupDir,
+            );
+            allFiles = await WebDavUtils.listFiles(
+              listUrl,
+              setting.backupSetting.webDavConfig.username,
+              setting.backupSetting.webDavConfig.password,
+            );
+          } else if (setting.backupSetting.type == BackupType.s3) {
+            allFiles = await S3Utils.listFiles(
+              setting.backupSetting.s3Config.endpoint,
+              setting.backupSetting.s3Config.bucketName,
+              setting.backupSetting.s3Config.accessKeyId,
+              setting.backupSetting.s3Config.secretAccessKey,
+              region: setting.backupSetting.s3Config.region,
+            );
+          }
+          final backupFiles = allFiles
+              .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
+
+          if (backupFiles.length > historyCount) {
+            final toDelete = backupFiles.sublist(historyCount);
+            for (final file in toDelete) {
+              try {
+                if (setting.backupSetting.type == BackupType.webdav) {
+                  final url = buildWebDavFileUrl(
+                    setting.backupSetting.webDavConfig.url,
+                    setting.backupSetting.webDavConfig.backupDir,
+                    file,
+                  );
+                  await WebDavUtils.deleteFile(
+                    url,
+                    setting.backupSetting.webDavConfig.username,
+                    setting.backupSetting.webDavConfig.password,
+                  );
+                } else if (setting.backupSetting.type == BackupType.s3) {
+                  await S3Utils.deleteFile(
+                    setting.backupSetting.s3Config.endpoint,
+                    setting.backupSetting.s3Config.bucketName,
+                    file,
+                    setting.backupSetting.s3Config.accessKeyId,
+                    setting.backupSetting.s3Config.secretAccessKey,
+                    region: setting.backupSetting.s3Config.region,
+                  );
+                }
+              } catch (_) {
+                // 删除旧版本失败不影响主流程
+              }
+            }
+          }
+        }
+      } catch (_) {
+        // 清理旧版本失败不影响主流程
+      }
+
       // 清理临时文件
       await backupFile.delete();
     } catch (e) {
@@ -390,6 +454,9 @@ class BackupService {
           await _secureStorage.read(key: 'app_lock_enabled') ?? '0';
       final appLockEnabled =
           appLockEnabledStr == '1' || appLockEnabledStr == 'true';
+      final historyCountStr =
+          await _secureStorage.read(key: 'backup_history_count') ?? '10';
+      final historyCount = int.tryParse(historyCountStr) ?? 10;
       final screenshotLockEnabledStr =
           await _secureStorage.read(key: 'screenshot_lock_enabled') ?? '1';
       final screenshotLockEnabled =
@@ -411,6 +478,7 @@ class BackupService {
             backupDir: s3BackupDir,
             region: s3Region,
           ),
+          historyCount: historyCount,
         ),
         securitySetting: SecuritySetting(
           appLockEnabled: appLockEnabled,
@@ -429,6 +497,7 @@ class BackupService {
             secretAccessKey: '',
             bucketName: '',
           ),
+          historyCount: 10,
         ),
       );
     }
@@ -479,6 +548,10 @@ class BackupService {
     await _secureStorage.write(
       key: 's3_region',
       value: setting.backupSetting.s3Config.region,
+    );
+    await _secureStorage.write(
+      key: 'backup_history_count',
+      value: setting.backupSetting.historyCount.toString(),
     );
 
     await _secureStorage.write(

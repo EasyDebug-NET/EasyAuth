@@ -1093,6 +1093,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   late TextEditingController _backupPasswordController;
   late TextEditingController _backupConfirmPasswordController;
 
+  // 历史版本数控制器
+  late TextEditingController _historyCountController;
+
   @override
   void initState() {
     super.initState();
@@ -1167,6 +1170,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
 
     _backupPasswordController = TextEditingController();
     _backupConfirmPasswordController = TextEditingController();
+    _historyCountController = TextEditingController(
+      text: _config.backupSetting.historyCount.toString(),
+    );
   }
 
   @override
@@ -1185,6 +1191,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
     _s3RegionController.dispose();
     _backupPasswordController.dispose();
     _backupConfirmPasswordController.dispose();
+    _historyCountController.dispose();
 
     super.dispose();
   }
@@ -1372,7 +1379,38 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   ],
                 ],
 
-                if (_config.backupSetting.type != BackupType.off) const SizedBox(height: 16),
+                if (_config.backupSetting.type != BackupType.off) ...[
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _historyCountController,
+                    decoration: const InputDecoration(
+                      labelText: '保留历史版本数',
+                      hintText: '默认 10，设为 0 则不限制',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        final n = int.tryParse(value);
+                        if (n == null || n < 0) {
+                          return '请输入不小于 0 的数字';
+                        }
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      final count = int.tryParse(value);
+                      if (count != null && count >= 0) {
+                        _config = _config.copyWith(
+                          backupSetting: _config.backupSetting.copyWith(
+                            historyCount: count,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // WebDAV 配置
                 if (_config.backupSetting.type == BackupType.webdav) ...[
@@ -1810,6 +1848,15 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                                       backupDir: _s3BackupDirController.text,
                                       region: _s3RegionController.text,
                                     ),
+                              );
+                            }
+
+                            final historyCount = int.tryParse(
+                              _historyCountController.text,
+                            );
+                            if (historyCount != null && historyCount >= 0) {
+                              newBackupSetting = newBackupSetting.copyWith(
+                                historyCount: historyCount,
                               );
                             }
 
