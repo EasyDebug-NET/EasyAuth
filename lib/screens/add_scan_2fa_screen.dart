@@ -7,7 +7,7 @@ import '../services/otp_service.dart';
 import '../utils/exceptions.dart';
 import '../utils/style_utils.dart';
 
-/// 扫描二维码添加2FA账户页面
+/// 扫描二维码添加2FA动态口令页面
 class AddScan2FaScreen extends StatefulWidget {
   const AddScan2FaScreen({super.key});
 
@@ -15,24 +15,25 @@ class AddScan2FaScreen extends StatefulWidget {
   State<AddScan2FaScreen> createState() => _AddScan2FaScreenState();
 }
 
-/// 扫描二维码添加2FA账户页面状态
 class _AddScan2FaScreenState extends State<AddScan2FaScreen>
     with WidgetsBindingObserver {
-  /// 是否正在扫描
+  /// 是否正在扫描中（防止重复扫描）
   bool _isScanning = true;
 
-  /// 数据库服务
+  /// 数据库存储服务
   final StorageService _storageService = StorageService();
 
-  /// 扫描控制器
+  /// 摄像头扫描控制器
   final MobileScannerController _controller = MobileScannerController();
 
+  /// 注册生命周期监听，用于前后台切换时控制摄像头
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
   }
 
+  /// 释放摄像头资源和生命周期监听
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -40,6 +41,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
     super.dispose();
   }
 
+  /// 前后台切换时控制摄像头：前台启动，后台停止
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!mounted) return;
@@ -58,6 +60,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
     }
   }
 
+  /// 构建摄像头扫描界面：扫描框 + 提示文字 + 返回/闪光灯按钮
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
@@ -141,28 +144,25 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
     );
   }
 
-  /// 处理扫描到的数据
+  /// 处理扫描到的 otpauth:// 二维码数据，解析并存入数据库
   Future<void> _processScannedData(String data) async {
     try {
-      // 验证二维码格式
       if (!data.startsWith('otpauth://')) {
         throw ValidationException('二维码格式错误，必须是 otpauth:// 格式的URI');
       }
 
       final params = OtpService.parseOtpAuthUri(data);
 
-      // 验证必要参数
       final secret = params['secret'] as String;
       if (secret.isEmpty) {
         throw ValidationException('二维码缺少必要的密钥信息（secret）');
       }
 
-      // 验证密钥格式（Base32）
       if (!_isValidBase32(secret)) {
         throw ValidationException('密钥格式无效，必须是Base32编码');
       }
 
-      // 转换secret为大写，确保Base32编码格式正确
+      // 转换 secret 为大写，确保 Base32 编码格式正确
       final normalizedSecret = secret.toUpperCase();
 
       final account = TwoFactorAccount(
@@ -187,23 +187,21 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
     } on ValidationException catch (e) {
       _showErrorDialog('二维码格式错误', e.message);
     } catch (e) {
-      // 其他错误
       String errorMessage = '无法识别此二维码';
       if (e.toString().contains('Only TOTP is supported')) {
-        errorMessage = '仅支持TOTP类型的动态密码，不支持HOTP';
+        errorMessage = '仅支持TOTP类型的动态口令，不支持HOTP';
       }
       _showErrorDialog('扫描失败', errorMessage);
     }
   }
 
-  /// 验证字符串是否为有效的Base32编码
+  /// 验证字符串是否为有效的 Base32 编码（A-Z, 2-7）
   bool _isValidBase32(String input) {
-    // Base32字符集：A-Z, 2-7
     final base32Regex = RegExp(r'^[A-Z2-7]+=*$');
     return base32Regex.hasMatch(input.toUpperCase());
   }
 
-  /// 显示错误对话框
+  /// 显示扫描错误对话框，提供重试和取消选项
   void _showErrorDialog(String title, String message) {
     if (!mounted) return;
 

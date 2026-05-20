@@ -30,7 +30,7 @@ class ImportExportScreen extends StatelessWidget {
               StyleUtils.mediumSpacing,
               // 说明文字
               Text(
-                '您可以将自己的动态密码转移到新设备中\n支持Google Authenticator的转移动态密码',
+                '您可以将自己的动态口令转移到新设备中\n支持Google Authenticator的转移动态口令',
                 textAlign: TextAlign.center,
                 style: StyleUtils.subtitleTextStyle(context),
               ),
@@ -48,7 +48,7 @@ class ImportExportScreen extends StatelessWidget {
                     );
                   },
                   style: StyleUtils.primaryButtonStyle(context),
-                  child: const Text('导出动态密码'),
+                  child: const Text('导出动态口令'),
                 ),
               ),
               StyleUtils.mediumSpacing,
@@ -65,7 +65,7 @@ class ImportExportScreen extends StatelessWidget {
                     );
                   },
                   style: StyleUtils.primaryButtonStyle(context),
-                  child: const Text('导入动态密码'),
+                  child: const Text('导入动态口令'),
                 ),
               ),
             ],

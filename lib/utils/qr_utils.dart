@@ -137,7 +137,7 @@ class QrUtils {
     }
   }
 
-  // ── Protobuf 手动解码 ──────────────────────────────────────
+  //  Protobuf 手动解码 
 
   static Map<String, dynamic> _decodeMigrationPayload(Uint8List data) {
     final result = <String, dynamic>{
@@ -319,7 +319,7 @@ class QrUtils {
     return newOffset > data.length ? data.length : newOffset;
   }
 
-  // ── Protobuf 手动编码 ──────────────────────────────────────
+  //  Protobuf 手动编码 
 
   static String generateMigrationData(List<Map<String, dynamic>> accounts) {
     final buffer = <int>[];
@@ -415,7 +415,7 @@ class QrUtils {
     return buffer;
   }
 
-  // ── Varint 工具方法 ────────────────────────────────────────
+  //  Varint 工具方法 
 
   static int _readVarint(Uint8List data, int offset) {
     int value = 0;

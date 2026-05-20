@@ -5,7 +5,7 @@ import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../utils/style_utils.dart';
 
-/// 手动输入2FA密钥添加账户页面
+/// 手动输入2FA密钥添加动态口令页面
 class AddManual2FaScreen extends StatefulWidget {
   const AddManual2FaScreen({super.key});
 
@@ -13,29 +13,29 @@ class AddManual2FaScreen extends StatefulWidget {
   State<AddManual2FaScreen> createState() => _AddManual2FaScreenState();
 }
 
-/// 手动输入2FA密钥添加账户页面状态
 class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
-  /// 表单键
+  /// 表单校验键
   final _formKey = GlobalKey<FormState>();
 
-  /// 发行者控制器
+  /// 发行者名称输入控制器
   final _issuerController = TextEditingController();
 
-  /// 账户名控制器
+  /// 动态口令名称输入控制器
   final _nameController = TextEditingController();
 
-  /// 密钥控制器
+  /// 2FA密钥输入控制器
   final _secretController = TextEditingController();
 
-  /// 计数器控制器
+  /// HOTP计数器初始值输入控制器
   final _counterController = TextEditingController(text: '0');
 
-  /// 数据库服务
+  /// 数据库存储服务
   final StorageService _storageService = StorageService();
 
-  /// 密钥类型
+  /// 密钥类型：'time' 基于时间（TOTP），'counter' 基于计数器（HOTP）
   String _secretType = 'time';
 
+  /// 释放所有输入控制器资源
   @override
   void dispose() {
     _issuerController.dispose();
@@ -45,7 +45,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
     super.dispose();
   }
 
-  /// 验证Base32格式
+  /// 验证字符串是否为有效的 Base32 编码
   bool _isValidBase32(String secret) {
     try {
       base32.decode(secret);
@@ -55,7 +55,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
     }
   }
 
-  /// 保存账户
+  /// 保存新添加的动态口令到数据库
   Future<void> _saveAccount() async {
     if (_formKey.currentState!.validate()) {
       final isHotp = _secretType == 'counter';
@@ -85,10 +85,11 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
     }
   }
 
+  /// 构建手动输入表单：发行者 + 名称 + 密钥 + 类型（TOTP/HOTP）+ 保存按钮
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('输入动态密码详情')),
+      appBar: AppBar(title: Text('输入动态口令详情')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -104,7 +105,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: StyleUtils.inputDecoration(
-                  '账户名称',
+                  '动态口令名称',
                   '例如：user@example.com',
                 ),
               ),

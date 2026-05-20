@@ -8,7 +8,7 @@ import '../services/storage_service.dart';
 import '../utils/qr_utils.dart';
 import '../utils/style_utils.dart';
 
-/// 导入动态密码页面
+/// 导入动态口令页面
 class Import2FaScreen extends StatefulWidget {
   const Import2FaScreen({super.key});
 
@@ -23,15 +23,16 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
   /// 二维码扫描控制器
   final MobileScannerController _controller = MobileScannerController();
 
-  /// 是否已扫描到二维码
+  /// 是否已扫描到二维码（防止重复处理）
   bool _scanned = false;
 
-  /// 解析后的待导入账户列表
+  /// 解析后的待导入动态口令列表
   List<Map<String, dynamic>> _importedAccounts = [];
 
-  /// 用户选择的账户列表
+  /// 用户勾选要导入的动态口令列表
   List<Map<String, dynamic>> _selectedAccounts = [];
 
+  /// 释放摄像头资源
   @override
   void dispose() {
     _controller.dispose();
@@ -52,7 +53,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
           _selectedAccounts = [];
         });
       } else {
-        // 尝试解析 JSON 格式的数据（兼容其他应用）
+        // 兼容其他应用的 JSON 格式
         try {
           if (code.startsWith('otpauth-migration://offline?data=')) {
             final dataPart = code.substring(
@@ -93,7 +94,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
     }
   }
 
-  /// 显示错误提示对话框
+  /// 显示错误提示对话框，允许重新扫描
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -113,7 +114,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
     );
   }
 
-  /// 重置扫描器状态，允许重新扫描
+  /// 重置扫描器，允许重新扫描
   void _resetScanner() {
     setState(() {
       _scanned = false;
@@ -121,13 +122,13 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
     _controller.start();
   }
 
-  /// 将解析后的账户数据导入到数据库
+  /// 将解析后的动态口令数据导入到数据库
   Future<void> _importAccounts() async {
     if (!mounted) return;
 
     try {
       if (_selectedAccounts.isEmpty) {
-        StyleUtils.errorSnackBar(context, '请选择要导入的账户');
+        StyleUtils.errorSnackBar(context, '请选择要导入的动态口令');
         return;
       }
 
@@ -170,20 +171,21 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
       if (!mounted) return;
 
       if (importedCount > 0) {
-        StyleUtils.successSnackBar(context, '成功导入 $importedCount 个账户');
+        StyleUtils.successSnackBar(context, '成功导入 $importedCount 个动态口令');
       } else {
-        StyleUtils.errorSnackBar(context, '没有成功导入任何账户');
+        StyleUtils.errorSnackBar(context, '没有成功导入任何动态口令');
       }
 
-      // 直接返回首页
+      // 导入成功后直接返回首页
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) {
-        StyleUtils.errorSnackBar(context, '导入账户时出错');
+        StyleUtils.errorSnackBar(context, '导入动态口令时出错');
       }
     }
   }
 
+  /// 构建扫描界面 / 导入选择列表界面
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
@@ -192,7 +194,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
       backgroundColor: Colors.black,
       appBar: _importedAccounts.isNotEmpty
           ? AppBar(
-              title: const Text('导入动态密码'),
+              title: const Text('导入动态口令'),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.pop(context),

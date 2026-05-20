@@ -6,7 +6,7 @@ import '../services/storage_service.dart';
 import '../utils/qr_utils.dart';
 import '../utils/style_utils.dart';
 
-/// 导出动态密码页面
+/// 导出动态口令页面
 class Export2FaScreen extends StatefulWidget {
   const Export2FaScreen({super.key});
 
@@ -18,22 +18,23 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
   /// 数据库存储服务
   final StorageService _storageService = StorageService();
 
-  /// 所有账户列表
+  /// 所有动态口令列表
   List<TwoFactorAccount> _accounts = [];
 
-  /// 每个账户是否被选中
+  /// 每个动态口令的选中状态
   List<bool> _selectedAccounts = [];
 
-  /// 生成的二维码数据
+  /// 生成的迁移二维码数据
   String? _qrcodeData;
 
+  /// 加载动态口令列表，默认全部选中
   @override
   void initState() {
     super.initState();
     _loadAccounts();
   }
 
-  /// 从数据库加载所有账户
+  /// 从数据库加载所有动态口令，默认全部选中
   Future<void> _loadAccounts() async {
     final accounts = await _storageService.getAllAccounts();
     setState(() {
@@ -42,7 +43,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
     });
   }
 
-  /// 根据选中的账户生成二维码数据
+  /// 根据选中的动态口令生成迁移二维码数据
   void _generateQrcode() {
     try {
       final selectedAccounts = _accounts.where((account) {
@@ -51,7 +52,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
       }).toList();
 
       if (selectedAccounts.isEmpty) {
-        StyleUtils.errorSnackBar(context, '请至少选择一个动态密码');
+        StyleUtils.errorSnackBar(context, '请至少选择一个动态口令');
         return;
       }
 
@@ -66,13 +67,13 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
 
   /// 生成 otpauth-migration://offline 格式的迁移数据
   ///
-  /// 将选中的账户信息序列化为 JSON，再进行 base64Url 编码。
+  /// 将选中的动态口令信息序列化为 JSON，再进行 base64Url 编码，
+  /// 兼容 Google Authenticator 的迁移格式。
   String _generateMigrationData(List<TwoFactorAccount> accounts) {
     try {
       final otps = accounts
           .map((account) {
             try {
-              // name 字段格式: issuer:name (Google Authenticator 标准格式)
               final issuer = account.issuer ?? '';
               final name = account.name ?? '';
               final fullName = issuer.isNotEmpty && name.isNotEmpty
@@ -102,10 +103,11 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
     }
   }
 
+  /// 构建导出界面：动态口令选择列表 + 导出按钮，或二维码展示
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('导出动态密码')),
+      appBar: AppBar(title: const Text('导出动态口令')),
       body: _qrcodeData == null
           ? Column(
               children: [
@@ -168,12 +170,14 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
   }
 }
 
+/// 二维码渲染组件
 class _QrCodeWidget extends StatelessWidget {
   final String data;
   final double size;
 
   const _QrCodeWidget({required this.data, required this.size});
 
+  /// 使用 CustomPaint 绘制二维码
   @override
   Widget build(BuildContext context) {
     final qrCode = QrCode(
@@ -189,11 +193,13 @@ class _QrCodeWidget extends StatelessWidget {
   }
 }
 
+/// 二维码绘制器，逐个模块绘制黑块
 class _QrPainter extends CustomPainter {
   final QrImage qrImage;
 
   _QrPainter({required this.qrImage});
 
+  /// 遍历二维码矩阵，逐个绘制黑色模块
   @override
   void paint(Canvas canvas, Size size) {
     final moduleCount = qrImage.moduleCount;
@@ -219,6 +225,7 @@ class _QrPainter extends CustomPainter {
     }
   }
 
+  /// 仅在二维码数据变化时重绘
   @override
   bool shouldRepaint(covariant _QrPainter oldDelegate) {
     return oldDelegate.qrImage != qrImage;

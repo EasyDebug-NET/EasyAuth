@@ -4,7 +4,7 @@ import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../utils/style_utils.dart';
 
-/// 修改2FA账户信息页面
+/// 修改2FA动态口令信息页面
 class Edit2FaScreen extends StatefulWidget {
   const Edit2FaScreen({super.key});
 
@@ -12,23 +12,23 @@ class Edit2FaScreen extends StatefulWidget {
   State<Edit2FaScreen> createState() => _Edit2FaScreenState();
 }
 
-/// 修改2FA账户信息页面状态
 class _Edit2FaScreenState extends State<Edit2FaScreen> {
-  /// 表单键
+  /// 表单校验键
   final _formKey = GlobalKey<FormState>();
 
-  /// 发行者控制器
+  /// 发行者名称输入控制器
   final _issuerController = TextEditingController();
 
-  /// 账户名控制器
+  /// 动态口令名称输入控制器
   final _nameController = TextEditingController();
 
-  /// 数据库服务
+  /// 数据库存储服务
   final StorageService _storageService = StorageService();
 
-  /// 当前账户
+  /// 当前正在编辑的动态口令
   TwoFactorAccount? _account;
 
+  /// 从路由参数中获取待编辑的动态口令，初始化表单
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -39,6 +39,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
     }
   }
 
+  /// 释放输入控制器资源
   @override
   void dispose() {
     _issuerController.dispose();
@@ -46,7 +47,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
     super.dispose();
   }
 
-  /// 保存账户
+  /// 保存修改后的动态口令信息到数据库
   Future<void> _saveAccount() async {
     if (_formKey.currentState!.validate() && _account != null) {
       final updatedAccount = TwoFactorAccount(
@@ -71,10 +72,11 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
     }
   }
 
+  /// 构建编辑表单：发行者名称 + 动态口令名称 + 保存按钮
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('修改账户')),
+      appBar: AppBar(title: Text('修改动态口令信息')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -90,7 +92,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: StyleUtils.inputDecoration(
-                  '账户名称',
+                  '动态口令名称',
                   '例如：user@example.com',
                 ),
               ),

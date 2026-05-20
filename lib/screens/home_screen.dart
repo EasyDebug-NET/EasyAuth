@@ -26,35 +26,33 @@ class _HomeScreenState extends State<HomeScreen>
     with WidgetsBindingObserver, RouteAware {
   /// 数据库存储服务
   final StorageService _storageService = StorageService();
-
-  /// 备份服务
+  /// 备份/恢复服务
   final BackupService _backupService = BackupService();
-
-  /// 安全服务
+  /// 安全认证服务（生物识别等）
   final SecurityService _securityService = SecurityService();
 
+  /// 认证失败后退出应用的延迟时间
   static const _authFailureExitDelay = Duration(milliseconds: 500);
+  /// 操作结果状态（成功/失败）的自动重置时间
   static const _operationStatusResetDuration = Duration(seconds: 3);
 
   /// 是否需要显示认证界面
   bool _needsAuthentication = false;
-
-  /// 应用设置
+  /// 应用设置配置
   Setting? _setting;
-
-  /// 所有账户列表
+  /// 所有动态口令列表（原始数据，未过滤）
   List<TwoFactorAccount> _accounts = [];
 
-  /// 过滤后的账户列表（根据搜索文本）
+  /// 过滤后的动态口令列表（根据搜索文本）
   List<TwoFactorAccount> _filteredAccounts = [];
 
-  /// 账户ID到动态码的映射
+  /// 动态口令ID到动态码的映射
   final Map<String, String> _codes = {};
 
-  /// 账户ID到剩余秒数的映射
+  /// 动态口令ID到剩余秒数的映射
   final Map<String, int> _remainingSeconds = {};
 
-  /// 搜索控制器
+  /// 搜索文本输入控制器
   final TextEditingController _searchController = TextEditingController();
 
   /// 当前搜索文本
@@ -90,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// 是否处于排序模式
   bool _isSortingMode = false;
 
+  /// 初始化状态：注册生命周期监听、加载数据、启动定时器
   @override
   void initState() {
     super.initState();
@@ -114,20 +113,12 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  /// 初始化方法，按照顺序加载数据和设置配置
-  /// 1. 先加载设置配置（包含安全设置）
-  /// 2. 检查安全锁设置，需要时进行认证
-  /// 3. 从本地数据库加载账户数据
+  /// 按顺序初始化：加载设置 → 检查安全锁 → 加载数据
   Future<void> _initialize() async {
     try {
-      /// 先加载设置配置（包含安全设置）
       await _loadSettingsConfig();
-
-      /// 检查安全锁设置
       await _checkSecurityLock();
-
-      /// 从本地数据库加载账户数据
-      await _loadLocalAccounts();
+      await _updateAccounts();
     } catch (e) {
       debugPrint('初始化失败: $e');
       if (mounted) {
@@ -136,18 +127,13 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// 检查安全锁设置
+  /// 检查安全锁设置，需要时触发生物识别认证
   Future<void> _checkSecurityLock() async {
-    // 确保应用设置已加载
-    if (_setting == null) {
-      return;
-    }
+    if (_setting == null) return;
 
-    // 检查是否需要认证
     if (_securityService.needsAuthentication(
       _setting!.securitySetting.appLockEnabled,
     )) {
-      // 需要进行生物识别认证
       setState(() {
         _needsAuthentication = true;
       });
@@ -157,10 +143,9 @@ class _HomeScreenState extends State<HomeScreen>
       );
 
       if (!authenticated) {
-        // 认证失败，退出应用
+        // 认证失败，退出应用（Android 上使用 SystemNavigator.pop 避免闪退）
         Future.delayed(_authFailureExitDelay, () {
           if (mounted) {
-            // 使用 SystemNavigator.pop() 退出应用，避免闪退
             if (Platform.isAndroid) {
               SystemNavigator.pop();
             } else if (Platform.isIOS) {
@@ -169,7 +154,6 @@ class _HomeScreenState extends State<HomeScreen>
           }
         });
       } else {
-        // 认证成功，继续加载数据
         setState(() {
           _needsAuthentication = false;
         });
@@ -177,23 +161,12 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// 从本地数据库加载账户数据
-  Future<void> _loadLocalAccounts() async {
-    await _updateAccounts();
-  }
-
-  /// 更新账户数据
-  ///
-  /// 执行步骤：
-  /// 1. 从数据库获取账户数据
-  /// 2. 检查数据是否变化
-  /// 3. 如果数据变化，更新UI和动态码
-  /// 4. 如果数据未变化，只更新动态码
+  /// 从数据库加载动态口令数据，数据未变化时跳过 UI 重建
   Future<void> _updateAccounts() async {
     try {
       final accounts = await _storageService.getAllAccounts();
 
-      // 检查是否需要更新，只有当账户数据真正变化时才更新
+      // 仅当数据真正变化时才重建 UI，避免不必要的刷新
       if (_accounts.length != accounts.length ||
           !_accounts.every(
             (account) => accounts.any(
@@ -221,15 +194,16 @@ class _HomeScreenState extends State<HomeScreen>
         _updateCodes();
       }
     } catch (e) {
-      debugPrint('加载账户失败: $e');
+      debugPrint('加载动态口令失败: $e');
     }
   }
 
-  /// 加载设置配置
+  /// 从本地存储加载应用设置配置
   Future<void> _loadSettingsConfig() async {
     _setting = await _backupService.loadConfig();
   }
 
+  /// 释放所有资源：定时器、控制器、路由监听
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -242,6 +216,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  /// 监听应用生命周期变化：后台时重置认证，前台时重新加载
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
@@ -263,33 +238,28 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// 处理应用从后台回到前台的逻辑
+  /// 从后台回到前台时：重新加载设置 → 检查安全锁 → 加载数据
   Future<void> _handleAppResumed() async {
-    // 先加载设置配置
     await _loadSettingsConfig();
-    // 再检查安全锁
     await _checkSecurityLock();
-    // 最后加载账户数据
     _loadAccounts();
   }
 
+  /// 订阅路由观察器，用于监听页面返回事件
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 订阅路由观察
     routeObserver.subscribe(this, ModalRoute.of(context)!);
   }
 
+  /// 从其他页面返回时重新加载数据和设置
   @override
   void didPopNext() {
-    // 当从其他页面返回时重新加载数据
     _loadAccounts();
     _loadSettingsConfig();
-    // 从设置页面返回时，如果应用锁已开启且已认证，则不重复认证
-    // 这里不需要额外的认证检查，因为_checkSecurityLock方法会处理
   }
 
-  /// 根据搜索文本过滤账户列表
+  /// 根据搜索文本过滤动态口令列表
   void _filterAccounts() {
     if (_searchText.isEmpty) {
       _filteredAccounts = _accounts;
@@ -304,6 +274,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  /// 构建主页面 UI：AppBar（搜索/排序/云备份）+ 动态口令列表 + FAB 添加按钮
   @override
   Widget build(BuildContext context) {
     // 认证过程中显示加载界面
@@ -395,12 +366,12 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            '此处似乎尚无任何动态密码',
+                            '此处似乎尚无任何动态口令',
                             style: TextStyle(fontSize: 18, color: Colors.grey),
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            '点击右下角 + 添加动态密码',
+                            '点击右下角 + 添加动态口令',
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                         ],
@@ -589,7 +560,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// 从数据库加载所有账户
+  /// 从数据库加载所有动态口令
   Future<void> _loadAccounts() async {
     // 防抖处理，避免频繁调用
     if (_loadAccountsDebounceTimer != null) {
@@ -608,7 +579,7 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  /// 构建云图标，根据不同状态显示不同的图标和颜色
+  /// 根据备份/恢复状态显示不同云图标
   Widget _buildCloudIcon() {
     // 操作结果状态：1-成功，2-失败
     if (_operationStatus == 1) {
@@ -617,7 +588,6 @@ class _HomeScreenState extends State<HomeScreen>
       return const Icon(Icons.cloud, color: Colors.red);
     }
 
-    // 备份状态
     if (_isBackupRunning) {
       return Icon(
         _isUploadIconFilling ? Icons.cloud_upload : Icons.cloud_upload_outlined,
@@ -625,7 +595,6 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    // 恢复状态
     if (_isRestoreRunning) {
       return Icon(
         _isDownloadIconFilling
@@ -635,11 +604,10 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    // 初始状态
     return StyleUtils.cloudIcon;
   }
 
-  /// 构建 HOTP 账户的 trailing 控件（递增按钮）
+  /// 构建 HOTP 动态口令的 trailing 控件（递增按钮）
   Widget _buildHotpTrailing(TwoFactorAccount account) {
     return SizedBox(
       width: 48,
@@ -653,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// 递增 HOTP 计数器并刷新动态密码
+  /// 递增 HOTP 计数器并刷新动态口令
   Future<void> _incrementCounter(TwoFactorAccount account) async {
     final newCounter = account.counter + 1;
     final updatedAccount = TwoFactorAccount(
@@ -672,9 +640,8 @@ class _HomeScreenState extends State<HomeScreen>
     await _loadAccounts();
   }
 
-  /// 更新所有账户的动态码和倒计时
+  /// 更新所有动态口令的动态码和倒计时
   void _updateCodes() {
-    // 只在账户列表不为空时更新
     if (_accounts.isEmpty) return;
 
     setState(() {
@@ -687,28 +654,28 @@ class _HomeScreenState extends State<HomeScreen>
             counter: account.isHotp ? account.counter : null,
           );
         } catch (e) {
-          // 单个账户生成失败，显示错误信息但不影响其他账户
+          // 单个失败不影响其他动态口令
           _codes[account.id] = 'ERROR';
-          debugPrint('生成动态码失败 - 账户 ${account.displayIssuerName}: $e');
+          debugPrint('生成动态码失败 - 动态口令 ${account.displayIssuerName}: $e');
         }
         _remainingSeconds[account.id] = OtpService.getRemainingSeconds(period: account.period);
       }
     });
   }
 
-  /// 跳转到编辑账户页面
+  /// 跳转到编辑动态口令页面
   Future<void> _showEditDialog(TwoFactorAccount account) async {
     await Navigator.pushNamed(context, '/edit', arguments: account);
     await _loadAccounts();
   }
 
-  /// 显示删除账户确认对话框
+  /// 显示删除动态口令确认对话框
   Future<bool> _showDeleteConfirmDialog(TwoFactorAccount account) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('删除账户'),
-        content: Text('确定要删除账户 "${account.displayIssuerName}" 吗？'),
+        title: Text('删除动态口令'),
+        content: Text('确定要删除动态口令 "${account.displayIssuerName}" 吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -752,7 +719,7 @@ class _HomeScreenState extends State<HomeScreen>
         _isSortingMode = false;
       });
       StyleUtils.successSnackBar(context, '排序已保存');
-      // 重新加载账户以更新显示顺序
+      // 重新加载动态口令以更新显示顺序
       await _loadAccounts();
     } else {
       StyleUtils.errorSnackBar(context, '保存排序失败');
@@ -972,7 +939,6 @@ class _HomeScreenState extends State<HomeScreen>
                 setState(() {
                   _operationStatus = 1;
                 });
-                // 重新加载账户
                 await _loadAccounts();
 
                 // 3秒后自动重置状态

@@ -1,4 +1,4 @@
-/// 2FA 账户数据模型
+/// 2FA 动态口令数据模型
 class TwoFactorAccount {
   /// 主键 ID，使用 UUID
   final String id;
@@ -6,13 +6,13 @@ class TwoFactorAccount {
   /// 发行者名称（如 Google、GitHub 等）
   final String? issuer;
 
-  /// 账户名称（如用户邮箱）
+  /// 动态口令名称（如用户邮箱）
   final String? name;
 
   /// 2FA 密钥（Base32 编码）
   final String secret;
 
-  /// 动态密码更新周期（秒），TOTP 默认 30 秒
+  /// 动态口令更新周期（秒），TOTP 默认 30 秒
   final int period;
 
   /// 加密算法（SHA1、SHA256、SHA512）
@@ -24,13 +24,9 @@ class TwoFactorAccount {
   /// HOTP 计数器当前值
   final int counter;
 
-  /// 账户创建时间
   final DateTime createdAt;
-
-  /// 账户最后更新时间
   final DateTime updatedAt;
 
-  /// 创建 2FA 账户实例
   TwoFactorAccount(
     this.id,
     this.issuer,
@@ -53,10 +49,10 @@ class TwoFactorAccount {
   /// 显示名称，格式为 "issuer:name" 或仅显示其中之一
   String get displayIssuerName => issuer != null && name != null
       ? "$issuer:$name"
-      : issuer ?? name ?? "未命名账户";
+      : issuer ?? name ?? "未命名动态口令";
 
-  /// 账户名称，若为空则返回"未命名账户"
-  String get displayName => name != null ? "$name" : "未命名账户";
+  /// 显示名称，若为空则返回默认名称
+  String get displayName => name != null ? "$name" : "未命名动态口令";
 
   /// 转换为 JSON Map
   Map<String, dynamic> toJson() {

@@ -88,7 +88,7 @@ class BackupService {
       } catch (e) {
         throw StorageException(
           '生成备份数据失败',
-          details: '无法读取账户数据',
+          details: '无法读取动态口令数据',
           originalException: e is Exception ? e : null,
         );
       }
@@ -597,7 +597,7 @@ class BackupService {
   Future<String> _generateMigrationData() async {
     final accounts = await _storageService.getAllAccounts();
 
-    // 转换账户数据格式，使其符合 QrUtils.generateMigrationData 的要求
+    // 转换动态口令数据格式，使其符合 QrUtils.generateMigrationData 的要求
     final accountList = accounts
         .map(
           (account) => {
@@ -734,16 +734,16 @@ class BackupService {
     }
   }
 
-  /// 从迁移数据恢复账户
+  /// 从迁移数据恢复动态口令
   Future<void> _restoreFromMigrationData(String migrationData) async {
-    // 清空现有账户
+    // 清空现有动态口令
     await _storageService.clearAllAccounts();
 
     // 使用 QrUtils.parseMigrationData 解析迁移数据
     // 复用 qr_utils.dart 中的解析方法，确保与二维码解析逻辑一致
     final accounts = QrUtils.parseMigrationData(migrationData);
 
-    // 遍历解析出的账户数据，添加到数据库
+    // 遍历解析出的动态口令数据，添加到数据库
     for (final account in accounts) {
       final secret = account['secret'] as String?;
       final name = account['name'] as String?;
@@ -755,7 +755,7 @@ class BackupService {
 
       if (secret == null || name == null) continue;
 
-      // 创建账户
+      // 创建动态口令
       final twoFactorAccount = TwoFactorAccount(
         '',
         // ID 会自动生成
