@@ -249,7 +249,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _backupService.performBackup(_setting);
       if (mounted) {
         // 优化SnackBar样式，使用floating行为提升用户体验
-        StyleUtils.successSnackBar(context, '备份完成');
+        StyleUtils.successSnackBar(context, '备份成功');
       }
     } catch (e) {
       if (mounted) {
