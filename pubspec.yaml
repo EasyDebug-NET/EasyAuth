@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0
+version: 1.0.1
 
 environment:
   sdk: ^3.12.0
@@ -33,35 +33,35 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  path: ^1.9.0
+  cupertino_icons: ^1.0.9
+  path: ^1.9.1
 
   # 2FA相关依赖
-  crypto: ^3.0.3
-  base32: ^2.1.1
+  crypto: ^3.0.7
+  base32: ^2.2.0
   # QR Scan
-  mobile_scanner: ^7.2.0
+  mobile_scanner: ^7.4.0
   # QR Generate
   qr: ^4.0.0
   # 存储
-  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage: ^10.3.1
   # UUID
-  uuid: ^4.5.3
+  uuid: ^4.6.0
   # 备份
-  path_provider: ^2.1.2
+  path_provider: ^2.1.6
   archive: ^4.0.9
-  http: ^1.2.1
-  xml: ^6.6.1
-  aws_signature_v4: ^0.6.10
-  aws_common: ^0.7.12
+  http: ^1.6.0
+  xml: ^7.0.1
+  aws_signature_v4: ^0.6.12
+  aws_common: ^0.7.15
   # 生物识别认证
-  local_auth: ^3.0.1
+  local_auth: ^3.0.2
   # 防止截屏
   flutter_windowmanager_plus: ^1.0.1
   # 打开链接
   url_launcher: ^6.3.2
   # 应用信息
-  package_info_plus: ^10.0.0
+  package_info_plus: ^10.2.1
   encrypt: ^5.0.3
 dev_dependencies:
   flutter_test:

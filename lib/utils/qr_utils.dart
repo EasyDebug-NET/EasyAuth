@@ -50,7 +50,7 @@ class QrUtils {
 
     for (final otpParams in payload['otp_parameters'] as List) {
       final p = otpParams as Map<String, dynamic>;
-      final secret = p['secret'];
+      final secret = p['secret'] as String?;
       if (secret == null || secret.isEmpty) continue;
 
       final name = (p['name'] as String?) ?? '';

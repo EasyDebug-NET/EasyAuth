@@ -52,23 +52,23 @@ class _MyAppState extends State<MyApp> {
       // 初始化时设置截屏锁状态
       await _updateScreenshotLock();
     } catch (e) {
-      _setting = Setting(
+      _setting = const Setting(
         backupSetting: BackupSetting(
           type: BackupType.off,
-          webDavConfig: const WebDavConfig(
+          webDavConfig: WebDavConfig(
             url: '',
             backupDir: '',
             username: '',
             password: '',
           ),
-          s3Config: const S3Config(
+          s3Config: S3Config(
             endpoint: '',
             accessKeyId: '',
             secretAccessKey: '',
             bucketName: '',
           ),
         ),
-        securitySetting: const SecuritySetting(),
+        securitySetting: SecuritySetting(),
       );
     } finally {
       setState(() {
@@ -121,14 +121,14 @@ class _MyAppState extends State<MyApp> {
       title: 'EasyAuth',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.light(
+        colorScheme: const ColorScheme.light(
           primary: Colors.blueAccent,
           brightness: Brightness.light,
         ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.dark(
+        colorScheme: const ColorScheme.dark(
           primary: Colors.blueAccent,
           brightness: Brightness.dark,
         ),

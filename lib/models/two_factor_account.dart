@@ -48,11 +48,11 @@ class TwoFactorAccount {
 
   /// 显示名称，格式为 "issuer:name" 或仅显示其中之一
   String get displayIssuerName => issuer != null && name != null
-      ? "$issuer:$name"
-      : issuer ?? name ?? "未命名动态口令";
+      ? '$issuer:$name'
+      : issuer ?? name ?? '未命名动态口令';
 
   /// 显示名称，若为空则返回默认名称
-  String get displayName => name != null ? "$name" : "未命名动态口令";
+  String get displayName => name != null ? '$name' : '未命名动态口令';
 
   /// 转换为 JSON Map
   Map<String, dynamic> toJson() {

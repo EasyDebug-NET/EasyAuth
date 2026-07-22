@@ -67,7 +67,7 @@ class SecurityService {
       }
 
       // biometricOnly: false 允许设备PIN/密码作为后备，模拟器也能用
-      debugPrint('开始执行认证 (biometricOnly=${canCheckBiometrics})');
+      debugPrint('开始执行认证 (biometricOnly=$canCheckBiometrics)');
       final result = await _localAuth.authenticate(
         localizedReason: reason,
         biometricOnly: canCheckBiometrics,

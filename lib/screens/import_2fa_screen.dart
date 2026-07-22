@@ -227,10 +227,10 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: Icon(Icons.arrow_back, color: Colors.white),
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
                             onPressed: () => Navigator.pop(context),
                           ),
-                          Expanded(
+                          const Expanded(
                             child: Center(
                               child: Text(
                                 '扫描二维码',
@@ -243,7 +243,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                             ),
                           ),
                           IconButton(
-                            icon: Icon(Icons.flash_on, color: Colors.white),
+                            icon: const Icon(Icons.flash_on, color: Colors.white),
                             onPressed: () async {
                               await _controller.toggleTorch();
                             },
@@ -263,7 +263,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                     ),
                   ),
                 ),
-                Positioned(
+                const Positioned(
                   bottom: 100,
                   left: 0,
                   right: 0,

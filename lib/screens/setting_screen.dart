@@ -491,8 +491,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           style: StyleUtils.lockTextStyle(context),
                                         ),
                                         if (!_isBiometricAvailable)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
+                                          const Padding(
+                                            padding: EdgeInsets.only(
                                               left: 8,
                                             ),
                                             child: Text(
@@ -558,8 +558,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           style: StyleUtils.lockTextStyle(context),
                                         ),
                                         if (!Platform.isAndroid)
-                                          Padding(
-                                            padding: const EdgeInsets.only(left: 8),
+                                          const Padding(
+                                            padding: EdgeInsets.only(left: 8),
                                             child: Text(
                                               '仅支持 Android',
                                               style: TextStyle(
@@ -948,7 +948,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     }
 
     if (errorMsg != null && mounted) {
-      StyleUtils.errorSnackBar(context, '删除失败', errorMsg!);
+      StyleUtils.errorSnackBar(context, '删除失败', errorMsg);
     }
   }
 
@@ -1008,7 +1008,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     }
 
     if (errorMsg != null && mounted) {
-      StyleUtils.errorSnackBar(context, '恢复失败', errorMsg!);
+      StyleUtils.errorSnackBar(context, '恢复失败', errorMsg);
     }
   }
 
@@ -1932,6 +1932,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                               backupSetting: newBackupSetting,
                             );
 
+                            if (!context.mounted) return;
                             Navigator.pop(context, _config);
                           }
                         },

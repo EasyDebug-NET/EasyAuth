@@ -95,7 +95,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    Expanded(
+                    const Expanded(
                       child: Center(
                         child: Text(
                           '扫描二维码',
@@ -128,7 +128,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
               ),
             ),
           ),
-          Positioned(
+          const Positioned(
             bottom: 100,
             left: 0,
             right: 0,

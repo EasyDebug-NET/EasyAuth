@@ -89,7 +89,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('输入动态口令详情')),
+      appBar: AppBar(title: const Text('输入动态口令详情')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -154,7 +154,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
                   },
                 ),
               ],
-              Spacer(),
+              const Spacer(),
               StyleUtils.largeSpacing,
               ElevatedButton(
                 onPressed: _saveAccount,

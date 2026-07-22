@@ -76,7 +76,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('修改动态口令信息')),
+      appBar: AppBar(title: const Text('修改动态口令信息')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -96,7 +96,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
                   '例如：user@example.com',
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               StyleUtils.largeSpacing,
               ElevatedButton(
                 onPressed: _saveAccount,

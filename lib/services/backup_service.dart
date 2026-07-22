@@ -491,7 +491,7 @@ class BackupService {
       );
     } catch (e) {
       // 出错时返回默认配置
-      return Setting(
+      return const Setting(
         backupSetting: BackupSetting(
           type: BackupType.off,
           webDavConfig: WebDavConfig(url: '', username: '', password: ''),

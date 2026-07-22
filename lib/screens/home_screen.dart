@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen>
         _searchDebounceTimer?.cancel();
       }
 
-      _searchDebounceTimer = Timer(Duration(milliseconds: 300), () {
+      _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
         if (!mounted) return;
         setState(() {
           _searchText = _searchController.text;
@@ -355,22 +355,22 @@ class _HomeScreenState extends State<HomeScreen>
           : RefreshIndicator(
               onRefresh: _loadAccounts,
               child: _accounts.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.qr_code_scanner,
                             size: 64,
                             color: Colors.grey,
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
+                          SizedBox(height: 16),
+                          Text(
                             '此处似乎尚无任何动态口令',
                             style: TextStyle(fontSize: 18, color: Colors.grey),
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
+                          SizedBox(height: 8),
+                          Text(
                             '点击右下角 + 添加动态口令',
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
@@ -567,7 +567,7 @@ class _HomeScreenState extends State<HomeScreen>
       _loadAccountsDebounceTimer?.cancel();
     }
 
-    _loadAccountsDebounceTimer = Timer(Duration(milliseconds: 50), () async {
+    _loadAccountsDebounceTimer = Timer(const Duration(milliseconds: 50), () async {
       await _updateAccounts();
     });
   }
@@ -674,16 +674,16 @@ class _HomeScreenState extends State<HomeScreen>
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('删除动态口令'),
+        title: const Text('删除动态口令'),
         content: Text('确定要删除动态口令 "${account.displayIssuerName}" 吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('取消'),
+            child: const Text('取消'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('删除'),
+            child: const Text('删除'),
           ),
         ],
       ),
@@ -718,10 +718,12 @@ class _HomeScreenState extends State<HomeScreen>
       setState(() {
         _isSortingMode = false;
       });
+      if (!mounted) return;
       StyleUtils.successSnackBar(context, '排序已保存');
       // 重新加载动态口令以更新显示顺序
       await _loadAccounts();
     } else {
+      if (!mounted) return;
       StyleUtils.errorSnackBar(context, '保存排序失败');
     }
   }
@@ -770,11 +772,8 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         );
       }).toList(),
-      onReorder: (oldIndex, newIndex) {
+      onReorderItem: (oldIndex, newIndex) {
         setState(() {
-          if (newIndex > oldIndex) {
-            newIndex -= 1;
-          }
           final account = _filteredAccounts.removeAt(oldIndex);
           _filteredAccounts.insert(newIndex, account);
         });
@@ -825,14 +824,14 @@ class _HomeScreenState extends State<HomeScreen>
         context: context,
         position: position,
         items: [
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'backup',
             child: ListTile(
               leading: Icon(Icons.cloud_upload),
               title: Text('备份到远端'),
             ),
           ),
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'restore',
             child: ListTile(
               leading: Icon(Icons.cloud_download),
@@ -1005,9 +1004,9 @@ class _MenuDrawer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(height: 64),
+          const SizedBox(height: 64),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: RichText(
               text: TextSpan(
                 children: [

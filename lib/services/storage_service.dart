@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
@@ -59,7 +60,7 @@ class StorageService {
 
       return id;
     } catch (e) {
-      print('插入动态口令失败: $e');
+      debugPrint('插入动态口令失败: $e');
       return '';
     }
   }
@@ -82,7 +83,7 @@ class StorageService {
             final accountData = jsonDecode(accountJson);
             accounts.add(TwoFactorAccount.fromJson(accountData));
           } catch (e) {
-            print('解析动态口令数据失败: $e');
+            debugPrint('解析动态口令数据失败: $e');
             continue;
           }
         }
@@ -90,7 +91,7 @@ class StorageService {
 
       return accounts;
     } catch (e) {
-      print('获取动态口令列表失败: $e');
+      debugPrint('获取动态口令列表失败: $e');
       return [];
     }
   }
@@ -104,7 +105,7 @@ class StorageService {
       final accountData = jsonDecode(accountJson);
       return TwoFactorAccount.fromJson(accountData);
     } catch (e) {
-      print('获取动态口令失败: $e');
+      debugPrint('获取动态口令失败: $e');
       return null;
     }
   }
@@ -138,7 +139,7 @@ class StorageService {
 
       return 1;
     } catch (e) {
-      print('更新动态口令失败: $e');
+      debugPrint('更新动态口令失败: $e');
       return 0;
     }
   }
@@ -164,7 +165,7 @@ class StorageService {
 
       return 1;
     } catch (e) {
-      print('删除动态口令失败: $e');
+      debugPrint('删除动态口令失败: $e');
       return 0;
     }
   }
@@ -183,7 +184,7 @@ class StorageService {
         await _secureStorage.delete(key: _accountsIndexKey);
       }
     } catch (e) {
-      print('清空动态口令失败: $e');
+      debugPrint('清空动态口令失败: $e');
     }
   }
 
@@ -196,7 +197,7 @@ class StorageService {
       );
       return true;
     } catch (e) {
-      print('更新动态口令顺序失败: $e');
+      debugPrint('更新动态口令顺序失败: $e');
       return false;
     }
   }
