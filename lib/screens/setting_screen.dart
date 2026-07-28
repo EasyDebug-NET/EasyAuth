@@ -660,6 +660,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       locale: Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       label: '繁體中文',
     ),
+    (locale: Locale('ja'), label: '日本語'),
+    (locale: Locale('ko'), label: '한국어'),
   ];
 
   /// 构建语言选择区域（下拉选择样式，与其他 section 统一）

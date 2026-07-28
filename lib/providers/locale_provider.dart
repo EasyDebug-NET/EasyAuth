@@ -29,17 +29,22 @@ class LocaleProvider extends ChangeNotifier {
     Locale('en'),
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+    Locale('ja'),
+    Locale('ko'),
   ];
 
   /// 获取指定语言的原生名称（始终以该语言自身显示）
   static String getLocaleNativeName(Locale locale) {
-    if (locale.languageCode == 'zh') {
-      if (locale.scriptCode == 'Hant') {
-        return '繁體中文';
-      }
-      return '简体中文';
+    switch (locale.languageCode) {
+      case 'zh':
+        return locale.scriptCode == 'Hant' ? '繁體中文' : '简体中文';
+      case 'ja':
+        return '日本語';
+      case 'ko':
+        return '한국어';
+      default:
+        return 'English';
     }
-    return 'English';
   }
 
   /// 检查两个 Locale 是否代表相同的语言
