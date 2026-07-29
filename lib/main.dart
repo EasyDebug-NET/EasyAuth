@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
+import 'package:provider/provider.dart';
 
+import 'l10n/app_localizations.dart';
 import 'models/setting.dart';
+import 'providers/locale_provider.dart';
 import 'screens/about_screen.dart';
 import 'screens/add_manual_2fa_screen.dart';
 import 'screens/add_scan_2fa_screen.dart';
@@ -16,13 +19,19 @@ final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
 /// 应用入口函数
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final localeProvider = LocaleProvider();
+  await localeProvider.loadLocale();
+
+  runApp(MyApp(localeProvider: localeProvider));
 }
 
 /// 应用主类
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final LocaleProvider localeProvider;
+
+  const MyApp({super.key, required this.localeProvider});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -117,40 +126,50 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EasyAuth',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: const ColorScheme.light(
-          primary: Colors.blueAccent,
-          brightness: Brightness.light,
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.blueAccent,
-          brightness: Brightness.dark,
-        ),
-      ),
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
-      navigatorObservers: [routeObserver],
-      home: _isLoading
-          ? const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(color: Colors.blueAccent),
+    return ChangeNotifierProvider<LocaleProvider>.value(
+      value: widget.localeProvider,
+      child: Consumer<LocaleProvider>(
+        builder: (context, localeProvider, _) {
+          return MaterialApp(
+            title: 'EasyAuth',
+            locale: localeProvider.currentLocale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: const ColorScheme.light(
+                primary: Colors.blueAccent,
+                brightness: Brightness.light,
               ),
-            )
-          : const HomeScreen(),
-      routes: {
-        '/addScan': (context) => const AddScan2FaScreen(),
-        '/addManual': (context) => const AddManual2FaScreen(),
-        '/edit': (context) => const Edit2FaScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/importExport': (context) => const ImportExportScreen(),
-        '/about': (context) => const AboutScreen(),
-      },
+            ),
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              colorScheme: const ColorScheme.dark(
+                primary: Colors.blueAccent,
+                brightness: Brightness.dark,
+              ),
+            ),
+            themeMode: ThemeMode.system,
+            debugShowCheckedModeBanner: false,
+            navigatorObservers: [routeObserver],
+            home: _isLoading
+                ? const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(color: Colors.blueAccent),
+                    ),
+                  )
+                : const HomeScreen(),
+            routes: {
+              '/addScan': (context) => const AddScan2FaScreen(),
+              '/addManual': (context) => const AddManual2FaScreen(),
+              '/edit': (context) => const Edit2FaScreen(),
+              '/settings': (context) => const SettingsScreen(),
+              '/importExport': (context) => const ImportExportScreen(),
+              '/about': (context) => const AboutScreen(),
+            },
+          );
+        },
+      ),
     );
   }
 }

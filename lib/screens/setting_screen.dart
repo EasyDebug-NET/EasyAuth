@@ -2,9 +2,12 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/setting.dart';
+import '../providers/locale_provider.dart';
 import '../services/backup_service.dart';
 import '../services/security_service.dart';
 import '../utils/exceptions.dart';
@@ -46,6 +49,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// 是否从云图标点击跳转过来
   bool _fromCloudIcon = false;
 
+  /// 是否已完成首次初始化
+  bool _initialized = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -55,13 +61,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (arguments != null) {
       _fromCloudIcon = arguments['fromCloudIcon'] ?? false;
     }
+    // 首次初始化放在这里，此时 widget 已在树中，可以访问 Localizations
+    if (!_initialized) {
+      _initialized = true;
+      _loadConfig();
+      _checkBiometricAvailability();
+    }
   }
 
   @override
   void initState() {
     super.initState();
-    _loadConfig();
-    _checkBiometricAvailability();
   }
 
   /// 检查生物识别可用性
@@ -73,6 +83,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// 加载配置
   Future<void> _loadConfig() async {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       final setting = await _backupService.loadConfig();
       if (!mounted) return;
@@ -83,8 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       // 检查是否未配置备份参数且是从云图标点击跳转过来
       if (_fromCloudIcon && _setting.backupSetting.type == BackupType.off) {
-        // 显示未配置备份参数的提示
-        StyleUtils.normalSnackBar(context, '未配置备份参数');
+        StyleUtils.normalSnackBar(context, l10n.snackNotConfigured);
       }
     } catch (e) {
       debugPrint('加载配置失败: $e');
@@ -92,72 +103,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _isLoadingConfig = false;
       });
-      // 显示加载配置失败的提示
-      StyleUtils.errorSnackBar(context, '加载配置失败: ${e.toString()}');
+      StyleUtils.errorSnackBar(context, l10n.snackLoadConfigFailed(e.toString()));
     }
   }
 
   /// 保存配置
   Future<void> _saveConfig() async {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       await _backupService.saveConfig(_setting);
     } catch (e) {
       debugPrint('保存配置失败: $e');
       if (mounted) {
-        StyleUtils.errorSnackBar(context, '保存配置失败: ${e.toString()}');
+        StyleUtils.errorSnackBar(context, l10n.snackSaveConfigFailed(e.toString()));
       }
     }
   }
 
   /// 更新截屏锁状态
-  ///
-  /// [enabled] 是否启用截屏锁
   Future<void> _updateScreenshotLock(bool enabled) async {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       if (enabled) {
-        // 防止截屏
         await FlutterWindowManagerPlus.addFlags(
           FlutterWindowManagerPlus.FLAG_SECURE,
         );
         debugPrint('截屏锁已开启');
         if (mounted) {
-          StyleUtils.normalSnackBar(context, '截屏锁已开启');
+          StyleUtils.normalSnackBar(context, l10n.snackScreenshotLockOn);
         }
       } else {
-        // 允许截屏
         await FlutterWindowManagerPlus.clearFlags(
           FlutterWindowManagerPlus.FLAG_SECURE,
         );
         debugPrint('截屏锁已关闭');
         if (mounted) {
-          StyleUtils.normalSnackBar(context, '截屏锁已关闭');
+          StyleUtils.normalSnackBar(context, l10n.snackScreenshotLockOff);
         }
       }
     } catch (e) {
       debugPrint('更新截屏锁状态失败: $e');
       if (mounted) {
-        StyleUtils.errorSnackBar(context, '更新截屏锁状态失败: ${e.toString()}');
+        StyleUtils.errorSnackBar(context, l10n.snackScreenshotLockError(e.toString()));
       }
     }
   }
 
   /// 处理应用锁开关变化
   Future<void> _handleAppLockToggle(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (value) {
-      // 检查设备是否支持生物识别
       if (!_isBiometricAvailable) {
-        // 设备不支持生物识别，显示提示
-        StyleUtils.normalSnackBar(context, '设备不支持生物识别，无法开启应用锁');
+        StyleUtils.normalSnackBar(context, l10n.snackBiometricNotAvailable);
         return;
       }
 
-      // 开启应用锁时，先进行生物识别认证
       bool authenticated = await _securityService.authenticate(
-        reason: '请验证身份以开启应用锁',
+        reason: l10n.authReasonEnable,
       );
 
       if (authenticated) {
-        // 认证成功，开启应用锁
         setState(() {
           _setting = _setting.copyWith(
             securitySetting: _setting.securitySetting.copyWith(
@@ -166,19 +174,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
         });
         await _saveConfig();
-        // 显示成功提示，保持在设置页面
         if (mounted) {
-          StyleUtils.normalSnackBar(context, '应用锁已开启');
+          StyleUtils.normalSnackBar(context, l10n.snackAppLockEnabled);
         }
       }
     } else {
-      // 关闭应用锁时，也需要进行生物识别认证，确保是合法用户操作
       bool authenticated = await _securityService.authenticate(
-        reason: '请验证身份以关闭应用锁',
+        reason: l10n.authReasonDisable,
       );
 
       if (authenticated) {
-        // 认证成功，关闭应用锁
         setState(() {
           _setting = _setting.copyWith(
             securitySetting: _setting.securitySetting.copyWith(
@@ -188,24 +193,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         });
         await _saveConfig();
         if (mounted) {
-          StyleUtils.normalSnackBar(context, '应用锁已关闭');
+          StyleUtils.normalSnackBar(context, l10n.snackAppLockDisabled);
         }
       } else {
-        // 认证失败，显示提示
         if (mounted) {
-          StyleUtils.errorSnackBar(context, '认证失败，无法关闭应用锁');
+          StyleUtils.errorSnackBar(context, l10n.snackAppLockDisableFailed);
         }
       }
     }
   }
 
   /// 获取备份配置状态文本
-  /// 关闭=未配置，已配置=已配置
   String _getBackupConfigStatusText() {
+    final l10n = AppLocalizations.of(context)!;
     if (_setting.backupSetting.type == BackupType.off) {
-      return '未配置';
+      return l10n.statusNotConfigured;
     }
-    return '已配置';
+    return l10n.statusConfigured;
   }
 
   /// 打开备份参数配置弹出层
@@ -230,14 +234,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _performBackup() async {
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (_setting.backupSetting.type == BackupType.off) {
-      // 优化SnackBar样式，使用floating行为提升用户体验
-      StyleUtils.normalSnackBar(context, '请先选择备份类型');
+      StyleUtils.normalSnackBar(context, l10n.snackSelectBackupTypeFirst);
       return;
     }
 
     if (!_backupService.isConfigValid(_setting)) {
-      StyleUtils.normalSnackBar(context, '请先配置完整的备份参数');
+      StyleUtils.normalSnackBar(context, l10n.snackConfigureBackupFirst);
       return;
     }
 
@@ -248,19 +253,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await _backupService.performBackup(_setting);
       if (mounted) {
-        // 优化SnackBar样式，使用floating行为提升用户体验
-        StyleUtils.successSnackBar(context, '备份成功');
+        StyleUtils.successSnackBar(context, l10n.snackBackupSuccess);
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = '备份失败';
+        String errorMessage = l10n.snackBackupFailed;
         String? errorDetails;
 
         if (e is AppException) {
           errorMessage = e.message;
           errorDetails = e.details;
         } else {
-          errorMessage = '备份失败: ${e.toString()}';
+          errorMessage = '${l10n.snackBackupFailed}: ${e.toString()}';
         }
 
         StyleUtils.errorSnackBar(context, errorMessage, errorDetails);
@@ -278,26 +282,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _restoreBackup() async {
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (_setting.backupSetting.type == BackupType.off) {
-      // 优化SnackBar样式，使用floating行为提升用户体验
-      StyleUtils.normalSnackBar(context, '请先选择备份类型');
+      StyleUtils.normalSnackBar(context, l10n.snackSelectBackupTypeFirst);
       return;
     }
 
     if (!_backupService.isConfigValid(_setting)) {
-      StyleUtils.normalSnackBar(context, '请先配置完整的备份参数');
+      StyleUtils.normalSnackBar(context, l10n.snackConfigureBackupFirst);
       return;
     }
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认恢复'),
-        content: const Text('恢复备份将覆盖当前数据，确定要继续吗？'),
+        title: Text(l10n.dialogTitleConfirmRestore),
+        content: Text(l10n.dialogConfirmRestoreBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n.buttonCancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -305,7 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('确定恢复'),
+            child: Text(l10n.dialogButtonConfirmRestore),
           ),
         ],
       ),
@@ -321,18 +326,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         await _backupService.restoreBackup(_setting);
         if (mounted) {
-          StyleUtils.successSnackBar(context, '恢复成功');
+          StyleUtils.successSnackBar(context, l10n.snackRestoreSuccess);
         }
       } catch (e) {
         if (mounted) {
-          String errorMessage = '恢复失败';
+          String errorMessage = l10n.snackRestoreFailed;
           String? errorDetails;
 
           if (e is AppException) {
             errorMessage = e.message;
             errorDetails = e.details;
           } else {
-            errorMessage = '恢复失败: ${e.toString()}';
+            errorMessage = '${l10n.snackRestoreFailed}: ${e.toString()}';
           }
 
           StyleUtils.errorSnackBar(context, errorMessage, errorDetails);
@@ -351,13 +356,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _manageRemoteBackup() async {
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (_setting.backupSetting.type == BackupType.off) {
-      StyleUtils.normalSnackBar(context, '请先选择备份类型');
+      StyleUtils.normalSnackBar(context, l10n.snackSelectBackupTypeFirst);
       return;
     }
 
     if (!_backupService.isConfigValid(_setting)) {
-      StyleUtils.normalSnackBar(context, '请先配置完整的备份参数');
+      StyleUtils.normalSnackBar(context, l10n.snackConfigureBackupFirst);
       return;
     }
 
@@ -370,15 +377,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_isLoadingConfig) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('加载配置中...'),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(l10n.loadingConfig),
             ],
           ),
         ),
@@ -390,7 +399,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('设置'),
+        title: Text(l10n.settingsTitle),
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         leading: IconButton(
@@ -408,10 +417,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                   ),
                   const SizedBox(height: 16),
-                  const Text('正在执行操作...'),
+                  Text(l10n.loadingOperation),
                   const SizedBox(height: 8),
                   Text(
-                    '请稍候',
+                    l10n.loadingPleaseWait,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -427,7 +436,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: _buildSection('备份设置', [
+                      child: _buildSection(l10n.sectionBackupSettings, [
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -436,7 +445,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('备份参数配置'),
+                                Expanded(
+                                  child: Text(
+                                    l10n.backupConfigTitle,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
                                 Text(
                                   _getBackupConfigStatusText(),
                                   style: const TextStyle(
@@ -451,19 +466,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 16),
 
                         if (_setting.backupSetting.type != BackupType.off) ...[
-                          _buildButton('备份到远端', _performBackup, primaryColor),
+                          _buildButton(l10n.backupToRemote, _performBackup, primaryColor),
                           const SizedBox(height: 16),
-                          _buildButton('从远端恢复', _restoreBackup, primaryColor),
+                          _buildButton(l10n.restoreFromRemote, _restoreBackup, primaryColor),
                           const SizedBox(height: 16),
                           _buildButton(
-                            '管理远端备份',
+                            l10n.manageRemoteBackups,
                             _manageRemoteBackup,
                             primaryColor,
                           ),
                         ],
                       ]),
                     ),
-                    // 添加分割线
                     Divider(
                       color: Theme.of(context).brightness == Brightness.light
                           ? Colors.grey.shade200
@@ -472,7 +486,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: _buildSection('安全设置', [
+                      child: _buildSection(l10n.sectionSecuritySettings, [
                         Container(
                           height: 50,
                           decoration: StyleUtils.lockContainerStyle(context),
@@ -487,17 +501,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     Row(
                                       children: [
                                         Text(
-                                          '应用锁',
+                                          l10n.labelAppLock,
                                           style: StyleUtils.lockTextStyle(context),
                                         ),
                                         if (!_isBiometricAvailable)
-                                          const Padding(
-                                            padding: EdgeInsets.only(
+                                          Padding(
+                                            padding: const EdgeInsets.only(
                                               left: 8,
                                             ),
                                             child: Text(
-                                              '设备不支持生物识别',
-                                              style: TextStyle(
+                                              l10n.biometricNotSupported,
+                                              style: const TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.yellowAccent,
                                               ),
@@ -554,15 +568,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     Row(
                                       children: [
                                         Text(
-                                          '截屏锁',
+                                          l10n.labelScreenshotLock,
                                           style: StyleUtils.lockTextStyle(context),
                                         ),
                                         if (!Platform.isAndroid)
-                                          const Padding(
-                                            padding: EdgeInsets.only(left: 8),
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8),
                                             child: Text(
-                                              '仅支持 Android',
-                                              style: TextStyle(
+                                              l10n.androidOnly,
+                                              style: const TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.yellowAccent,
                                               ),
@@ -586,7 +600,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           );
                                         });
                                         await _saveConfig();
-                                        // 立即更新截屏锁状态
                                         await _updateScreenshotLock(value);
                                       } : null,
                                       activeThumbColor: Colors.white,
@@ -619,10 +632,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ]),
                     ),
+                    Divider(
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? Colors.grey.shade200
+                          : Colors.grey.shade800,
+                      height: 1,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildLanguageSection(l10n.sectionLanguage),
+                    ),
                   ],
                 ),
               ),
             ),
+    );
+  }
+
+  /// 语言选项列表（新语言只需在这里加一行）
+  static const List<({Locale locale, String label})> _languageOptions = [
+    (locale: Locale('en'), label: 'English'),
+    (
+      locale: Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+      label: '简体中文',
+    ),
+    (
+      locale: Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+      label: '繁體中文',
+    ),
+  ];
+
+  /// 构建语言选择区域（下拉选择样式，与其他 section 统一）
+  Widget _buildLanguageSection(String title) {
+    final localeProvider = context.watch<LocaleProvider>();
+    final currentLabel = _languageOptions
+        .firstWhere(
+          (o) => LocaleProvider.localeEquals(o.locale, localeProvider.currentLocale),
+          orElse: () => _languageOptions.first,
+        )
+        .label;
+
+    return _buildSection(title, [
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _showLanguagePicker,
+          style: StyleUtils.primaryButtonStyleLeft(context),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(currentLabel),
+              const Icon(Icons.arrow_forward_ios, size: 16),
+            ],
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  /// 显示语言选择底部弹窗
+  void _showLanguagePicker() {
+    final localeProvider = context.read<LocaleProvider>();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Text(
+                    AppLocalizations.of(ctx)!.sectionLanguage,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ..._languageOptions.map(
+                  (option) {
+                    final isSelected = LocaleProvider.localeEquals(
+                      localeProvider.currentLocale,
+                      option.locale,
+                    );
+                    return ListTile(
+                      title: Text(option.label, style: const TextStyle(fontSize: 16)),
+                      trailing: isSelected
+                          ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                          : null,
+                      onTap: () {
+                        localeProvider.setLocale(option.locale);
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -679,12 +794,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 }
 
 /// 远端备份管理弹出层
-///
-/// 用于展示备份文件列表，支持全选、单选和批量删除操作
 class _RemoteBackupManager extends StatefulWidget {
-  /// 应用设置
   final Setting config;
-
   const _RemoteBackupManager({required this.config});
 
   @override
@@ -692,19 +803,10 @@ class _RemoteBackupManager extends StatefulWidget {
 }
 
 class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
-  /// 应用设置
   late Setting _config;
-
-  /// 备份文件列表
   List<BackupFile> _backupFiles = [];
-
-  /// 是否正在加载
   bool _isLoading = true;
-
-  /// 是否全选
   bool _selectAll = false;
-
-  /// 选中的文件列表
   final _selectedFiles = <String>{};
 
   @override
@@ -714,37 +816,28 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     _loadBackupFiles();
   }
 
-  /// 加载备份文件列表
-  ///
-  /// 执行步骤：
-  /// 1. 设置加载状态
-  /// 2. 根据备份类型获取文件列表
-  /// 3. 过滤并解析备份文件
-  /// 4. 按时间降序排序
-  /// 5. 更新状态
   Future<void> _loadBackupFiles() async {
     setState(() {
       _isLoading = true;
     });
+
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final backupService = BackupService();
       List<String> files;
 
       if (_config.backupSetting.type == BackupType.webdav) {
-        // 构建 WebDAV 目录 URL
         final listUrl = backupService.buildWebDavDirUrl(
           _config.backupSetting.webDavConfig.url,
           _config.backupSetting.webDavConfig.backupDir,
         );
-        // 获取 WebDAV 文件列表
         files = await WebDavUtils.listFiles(
           listUrl,
           _config.backupSetting.webDavConfig.username,
           _config.backupSetting.webDavConfig.password,
         );
       } else if (_config.backupSetting.type == BackupType.s3) {
-        // 获取 S3 文件列表
         files = await S3Utils.listFiles(
           _config.backupSetting.s3Config.endpoint,
           _config.backupSetting.s3Config.bucketName,
@@ -752,34 +845,24 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
           _config.backupSetting.s3Config.secretAccessKey,
           region: _config.backupSetting.s3Config.region,
         );
-        // 过滤出指定目录下的文件
         if (_config.backupSetting.s3Config.backupDir.isNotEmpty) {
           files = files
-              .where(
-                (file) =>
-                    file.startsWith(_config.backupSetting.s3Config.backupDir),
-              )
-              .map(
-                (file) => file
-                    .substring(_config.backupSetting.s3Config.backupDir.length)
-                    .replaceFirst(RegExp(r'^/'), ''),
-              )
+              .where((file) => file.startsWith(_config.backupSetting.s3Config.backupDir))
+              .map((file) => file
+                  .substring(_config.backupSetting.s3Config.backupDir.length)
+                  .replaceFirst(RegExp(r'^/'), ''))
               .toList();
         }
       } else {
         files = [];
       }
 
-      // 过滤备份文件并解析时间
       final backupFiles = files
           .where((file) => file.startsWith('backup_') && file.endsWith('.zip'))
           .map((file) {
-            final timestamp = file
-                .replaceAll('backup_', '')
-                .replaceAll('.zip', '');
+            final timestamp = file.replaceAll('backup_', '').replaceAll('.zip', '');
             DateTime? dateTime;
             try {
-              // 解析时间戳格式: YYYYMMDD_HHMMSS
               if (timestamp.length >= 14 && timestamp.contains('_')) {
                 final parts = timestamp.split('_');
                 if (parts.length == 2) {
@@ -804,7 +887,6 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
           })
           .toList();
 
-      // 按时间降序排序
       backupFiles.sort((a, b) {
         if (a.dateTime == null) return 1;
         if (b.dateTime == null) return -1;
@@ -820,12 +902,11 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
         _isLoading = false;
       });
       if (mounted) {
-        StyleUtils.normalSnackBar(context, '加载失败: ${e.toString()}');
+        StyleUtils.normalSnackBar(context, l10n.snackLoadFailed(e.toString()));
       }
     }
   }
 
-  /// 切换全选状态
   void _toggleSelectAll() {
     setState(() {
       _selectAll = !_selectAll;
@@ -837,9 +918,6 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     });
   }
 
-  /// 切换单个文件的选择状态
-  ///
-  /// [fileName] 文件名
   void _toggleSelect(String fileName) {
     setState(() {
       if (_selectedFiles.contains(fileName)) {
@@ -851,28 +929,20 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     });
   }
 
-  /// 删除选中的备份文件
-  ///
-  /// 执行步骤：
-  /// 1. 显示确认对话框
-  /// 2. 设置加载状态
-  /// 3. 遍历删除选中的文件
-  /// 4. 显示删除结果
-  /// 5. 重新加载文件列表
   Future<void> _deleteSelected() async {
-    if (_selectedFiles.isEmpty) {
-      return;
-    }
+    if (_selectedFiles.isEmpty) return;
+
+    final l10n = AppLocalizations.of(context)!;
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除选中的 ${_selectedFiles.length} 个备份文件吗？此操作不可恢复。'),
+        title: Text(l10n.dialogTitleConfirmDelete),
+        content: Text(l10n.dialogConfirmDeleteBackups(_selectedFiles.length)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n.buttonCancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -880,7 +950,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('删除'),
+            child: Text(l10n.buttonDelete),
           ),
         ],
       ),
@@ -898,28 +968,23 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
 
       for (final fileName in _selectedFiles) {
         if (_config.backupSetting.type == BackupType.webdav) {
-          // 构建 WebDAV 文件 URL
           final url = backupService.buildWebDavFileUrl(
             _config.backupSetting.webDavConfig.url,
             _config.backupSetting.webDavConfig.backupDir,
             fileName,
           );
-          // 删除 WebDAV 文件
           await WebDavUtils.deleteFile(
             url,
             _config.backupSetting.webDavConfig.username,
             _config.backupSetting.webDavConfig.password,
           );
         } else if (_config.backupSetting.type == BackupType.s3) {
-          // 删除 S3 文件
           String objectKey = fileName;
           if (_config.backupSetting.s3Config.backupDir.isNotEmpty) {
             if (_config.backupSetting.s3Config.backupDir.endsWith('/')) {
-              objectKey =
-                  '${_config.backupSetting.s3Config.backupDir}$fileName';
+              objectKey = '${_config.backupSetting.s3Config.backupDir}$fileName';
             } else {
-              objectKey =
-                  '${_config.backupSetting.s3Config.backupDir}/$fileName';
+              objectKey = '${_config.backupSetting.s3Config.backupDir}/$fileName';
             }
           }
           await S3Utils.deleteFile(
@@ -934,7 +999,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
       }
 
       if (mounted) {
-        StyleUtils.successSnackBar(context, '删除成功');
+        StyleUtils.successSnackBar(context, l10n.snackDeleteSuccess);
         _loadBackupFiles();
       }
     } catch (e) {
@@ -948,29 +1013,22 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     }
 
     if (errorMsg != null && mounted) {
-      StyleUtils.errorSnackBar(context, '删除失败', errorMsg);
+      StyleUtils.errorSnackBar(context, l10n.snackDeleteFailed, errorMsg);
     }
   }
 
-  /// 恢复指定版本的备份文件
-  ///
-  /// [fileName] 备份文件名
-  ///
-  /// 执行步骤：
-  /// 1. 显示确认对话框
-  /// 2. 设置加载状态
-  /// 3. 调用备份服务恢复指定文件
-  /// 4. 显示恢复结果
   Future<void> _restoreFile(String fileName) async {
+    final l10n = AppLocalizations.of(context)!;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认恢复'),
-        content: Text('确定要恢复到 "$fileName" 吗？\n恢复将覆盖当前所有数据。'),
+        title: Text(l10n.dialogTitleConfirmRestore),
+        content: Text(l10n.dialogConfirmRestoreFile(fileName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n.buttonCancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -978,7 +1036,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
             ),
-            child: const Text('确定恢复'),
+            child: Text(l10n.dialogButtonConfirmRestore),
           ),
         ],
       ),
@@ -996,7 +1054,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
       await backupService.restoreBackup(_config, specificFile: fileName);
 
       if (mounted) {
-        StyleUtils.successSnackBar(context, '恢复成功');
+        StyleUtils.successSnackBar(context, l10n.snackRestoreSuccess);
         Navigator.pop(context);
       }
     } catch (e) {
@@ -1008,13 +1066,14 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     }
 
     if (errorMsg != null && mounted) {
-      StyleUtils.errorSnackBar(context, '恢复失败', errorMsg);
+      StyleUtils.errorSnackBar(context, l10n.snackRestoreFailed, errorMsg);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1030,7 +1089,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '管理远端备份',
+                l10n.manageRemoteBackups,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -1047,10 +1106,9 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
             const Center(child: CircularProgressIndicator()),
             const SizedBox(height: 40),
           ] else if (_backupFiles.isEmpty) ...[
-            const Center(child: Text('没有找到备份文件')),
+            Center(child: Text(l10n.emptyNoBackupFiles)),
             const SizedBox(height: 40),
           ] else ...[
-            // 全选和删除按钮
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1060,7 +1118,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
                       value: _selectAll,
                       onChanged: (_) => _toggleSelectAll(),
                     ),
-                    const Text('全选'),
+                    Text(l10n.buttonSelectAll),
                   ],
                 ),
                 ElevatedButton(
@@ -1069,13 +1127,11 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('删除'),
+                  child: Text(l10n.buttonDelete),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-
-            // 备份文件列表
             Container(
               constraints: const BoxConstraints(maxHeight: 400),
               child: ListView.builder(
@@ -1090,11 +1146,11 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
                     subtitle: Text(
                       file.dateTime != null
                           ? '${file.dateTime!.year}-${file.dateTime!.month.toString().padLeft(2, '0')}-${file.dateTime!.day.toString().padLeft(2, '0')} ${file.dateTime!.hour.toString().padLeft(2, '0')}:${file.dateTime!.minute.toString().padLeft(2, '0')}:${file.dateTime!.second.toString().padLeft(2, '0')}'
-                          : '未知时间',
+                          : l10n.statusUnknownTime,
                     ),
                     secondary: IconButton(
                       icon: const Icon(Icons.restore),
-                      tooltip: '恢复',
+                      tooltip: l10n.buttonRestore,
                       onPressed: () => _restoreFile(file.name),
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
@@ -1103,7 +1159,6 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
               ),
             ),
           ],
-
           const SizedBox(height: 24),
         ],
       ),
@@ -1112,26 +1167,15 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
 }
 
 /// 备份文件模型
-///
-/// 用于存储备份文件的基本信息，包括文件名和创建时间
 class BackupFile {
-  /// 文件名
   final String name;
-
-  /// 文件创建时间
   final DateTime? dateTime;
-
-  /// 创建备份文件实例
-  ///
-  /// [name] 文件名
-  /// [dateTime] 文件创建时间
   BackupFile({required this.name, this.dateTime});
 }
 
 /// 备份参数配置弹出层
 class _BackupConfigDialog extends StatefulWidget {
   final Setting initialConfig;
-
   const _BackupConfigDialog({required this.initialConfig});
 
   @override
@@ -1143,13 +1187,11 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   final _formKey = GlobalKey<FormState>();
   bool _hasBackupPassword = false;
 
-  // WebDAV 控制器
   late TextEditingController _webDavUrlController;
   late TextEditingController _webDavBackupDirController;
   late TextEditingController _webDavUsernameController;
   late TextEditingController _webDavPasswordController;
 
-  // S3 控制器
   late TextEditingController _s3EndpointController;
   late TextEditingController _s3AccessKeyIdController;
   late TextEditingController _s3SecretAccessKeyController;
@@ -1157,11 +1199,8 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   late TextEditingController _s3BackupDirController;
   late TextEditingController _s3RegionController;
 
-  // 备份密码控制器
   late TextEditingController _backupPasswordController;
   late TextEditingController _backupConfirmPasswordController;
-
-  // 历史版本数控制器
   late TextEditingController _historyCountController;
 
   @override
@@ -1178,48 +1217,25 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
     setState(() {});
   }
 
-  /// 初始化控制器
   void _initControllers() {
-    // WebDAV 控制器
-    _webDavUrlController = TextEditingController(
-      text: _config.backupSetting.webDavConfig.url,
-    );
-    // 检查WebDAV是否首次配置：如果所有必填字段都为空，说明是首次配置，预填"EasyAuth"
-    // 如果用户已经配置过（其他字段有值），则尊重用户的设置，即使backupDir为空
+    _webDavUrlController = TextEditingController(text: _config.backupSetting.webDavConfig.url);
     bool isWebDavFirstTimeSetup =
         _config.backupSetting.webDavConfig.url.isEmpty &&
         _config.backupSetting.webDavConfig.username.isEmpty &&
         _config.backupSetting.webDavConfig.password.isEmpty;
 
     _webDavBackupDirController = TextEditingController(
-      text:
-          (isWebDavFirstTimeSetup &&
-              _config.backupSetting.webDavConfig.backupDir.isEmpty)
+      text: (isWebDavFirstTimeSetup && _config.backupSetting.webDavConfig.backupDir.isEmpty)
           ? 'EasyAuth'
           : _config.backupSetting.webDavConfig.backupDir,
     );
-    _webDavUsernameController = TextEditingController(
-      text: _config.backupSetting.webDavConfig.username,
-    );
-    _webDavPasswordController = TextEditingController(
-      text: _config.backupSetting.webDavConfig.password,
-    );
+    _webDavUsernameController = TextEditingController(text: _config.backupSetting.webDavConfig.username);
+    _webDavPasswordController = TextEditingController(text: _config.backupSetting.webDavConfig.password);
 
-    // S3 控制器
-    _s3EndpointController = TextEditingController(
-      text: _config.backupSetting.s3Config.endpoint,
-    );
-    _s3AccessKeyIdController = TextEditingController(
-      text: _config.backupSetting.s3Config.accessKeyId,
-    );
-    _s3SecretAccessKeyController = TextEditingController(
-      text: _config.backupSetting.s3Config.secretAccessKey,
-    );
-    _s3BucketNameController = TextEditingController(
-      text: _config.backupSetting.s3Config.bucketName,
-    );
-    // 检查S3是否首次配置：如果所有必填字段都为空，说明是首次配置，预填"EasyAuth"
-    // 如果用户已经配置过（其他字段有值），则尊重用户的设置，即使backupDir为空
+    _s3EndpointController = TextEditingController(text: _config.backupSetting.s3Config.endpoint);
+    _s3AccessKeyIdController = TextEditingController(text: _config.backupSetting.s3Config.accessKeyId);
+    _s3SecretAccessKeyController = TextEditingController(text: _config.backupSetting.s3Config.secretAccessKey);
+    _s3BucketNameController = TextEditingController(text: _config.backupSetting.s3Config.bucketName);
     bool isFirstTimeSetup =
         _config.backupSetting.s3Config.endpoint.isEmpty &&
         _config.backupSetting.s3Config.accessKeyId.isEmpty &&
@@ -1227,30 +1243,23 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
         _config.backupSetting.s3Config.bucketName.isEmpty;
 
     _s3BackupDirController = TextEditingController(
-      text:
-          (isFirstTimeSetup && _config.backupSetting.s3Config.backupDir.isEmpty)
+      text: (isFirstTimeSetup && _config.backupSetting.s3Config.backupDir.isEmpty)
           ? 'EasyAuth'
           : _config.backupSetting.s3Config.backupDir,
     );
-    _s3RegionController = TextEditingController(
-      text: _config.backupSetting.s3Config.region,
-    );
+    _s3RegionController = TextEditingController(text: _config.backupSetting.s3Config.region);
 
     _backupPasswordController = TextEditingController();
     _backupConfirmPasswordController = TextEditingController();
-    _historyCountController = TextEditingController(
-      text: _config.backupSetting.historyCount.toString(),
-    );
+    _historyCountController = TextEditingController(text: _config.backupSetting.historyCount.toString());
   }
 
   @override
   void dispose() {
-    //  dispose 控制器
     _webDavUrlController.dispose();
     _webDavBackupDirController.dispose();
     _webDavUsernameController.dispose();
     _webDavPasswordController.dispose();
-
     _s3EndpointController.dispose();
     _s3AccessKeyIdController.dispose();
     _s3SecretAccessKeyController.dispose();
@@ -1260,22 +1269,18 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
     _backupPasswordController.dispose();
     _backupConfirmPasswordController.dispose();
     _historyCountController.dispose();
-
     super.dispose();
   }
 
-  /// 打开链接
   Future<void> _launchUrl(String url) async {
+    final l10n = AppLocalizations.of(context)!;
     final uri = Uri.parse(url);
     try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('无法打开链接，请检查是否安装了浏览器'),
+          SnackBar(
+            content: Text(l10n.errorCannotOpenUrl),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -1284,7 +1289,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('打开链接失败: $e'),
+            content: Text(l10n.errorOpenUrlFailed(e.toString())),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -1296,6 +1301,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
 
     return AnimatedPadding(
       padding: EdgeInsets.only(
@@ -1320,10 +1326,11 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '备份参数配置',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        l10n.backupConfigTitle,
+                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     IconButton(
@@ -1334,31 +1341,23 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                 ),
                 const SizedBox(height: 24),
 
-                // 备份类型
                 DropdownButtonFormField<String>(
                   initialValue: _config.backupSetting.type.name,
-                  decoration: const InputDecoration(
-                    labelText: '备份类型',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.labelBackupType,
+                    border: const OutlineInputBorder(),
                   ),
                   items: [
-                    const DropdownMenuItem(value: 'off', child: Text('关闭')),
-                    const DropdownMenuItem(
-                      value: 'webdav',
-                      child: Text('WebDAV'),
-                    ),
-                    const DropdownMenuItem(value: 's3', child: Text('对象存储')),
+                    DropdownMenuItem(value: 'off', child: Text(l10n.backupTypeOff)),
+                    DropdownMenuItem(value: 'webdav', child: Text(l10n.backupTypeWebDAV)),
+                    DropdownMenuItem(value: 's3', child: Text(l10n.backupTypeS3)),
                   ],
                   onChanged: (value) {
                     if (value != null) {
-                      final newType = BackupType.values.firstWhere(
-                        (e) => e.name == value,
-                      );
+                      final newType = BackupType.values.firstWhere((e) => e.name == value);
                       setState(() {
                         _config = _config.copyWith(
-                          backupSetting: _config.backupSetting.copyWith(
-                            type: newType,
-                          ),
+                          backupSetting: _config.backupSetting.copyWith(type: newType),
                         );
                       });
                     }
@@ -1367,6 +1366,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                 const SizedBox(height: 16),
 
                 if (_config.backupSetting.type != BackupType.off) ...[
+
                   if (_hasBackupPassword)
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -1377,11 +1377,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle,
-                              color: Colors.green.shade600, size: 20),
+                          Icon(Icons.check_circle, color: Colors.green.shade600, size: 20),
                           const SizedBox(width: 8),
-                          const Text('备份密码已设置',
-                              style: TextStyle(color: Colors.black87)),
+                          Text(l10n.passwordAlreadySet, style: const TextStyle(color: Colors.black87)),
                           const Spacer(),
                           TextButton(
                             onPressed: () {
@@ -1391,26 +1389,27 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                                 _backupConfirmPasswordController.clear();
                               });
                             },
-                            child: const Text('修改'),
+                            child: Text(l10n.buttonModify),
                           ),
                         ],
                       ),
                     )
                   else ...[
+
                     TextFormField(
                       controller: _backupPasswordController,
-                      decoration: const InputDecoration(
-                        labelText: '备份密码',
-                        hintText: '请设置备份加密密码',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.labelBackupPassword,
+                        hintText: l10n.hintBackupPassword,
+                        border: const OutlineInputBorder(),
                       ),
                       obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return '备份密码不能为空';
+                          return l10n.validationBackupPasswordRequired;
                         }
                         if (value.length < 8) {
-                          return '备份密码长度不能少于8位';
+                          return l10n.validationBackupPasswordMinLength;
                         }
                         return null;
                       },
@@ -1418,18 +1417,18 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _backupConfirmPasswordController,
-                      decoration: const InputDecoration(
-                        labelText: '确认备份密码',
-                        hintText: '请再次输入备份密码',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.labelConfirmBackupPassword,
+                        hintText: l10n.hintConfirmBackupPassword,
+                        border: const OutlineInputBorder(),
                       ),
                       obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return '确认备份密码不能为空';
+                          return l10n.validationConfirmPasswordRequired;
                         }
                         if (value != _backupPasswordController.text) {
-                          return '两次输入的密码不一致';
+                          return l10n.validationPasswordMismatch;
                         }
                         return null;
                       },
@@ -1437,11 +1436,8 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        '备份密码用于加密备份文件。多台设备需设置相同密码才能共享备份。',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
+                        l10n.passwordTipMessage,
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                       ),
                     ),
                   ],
@@ -1451,17 +1447,17 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _historyCountController,
-                    decoration: const InputDecoration(
-                      labelText: '保留历史版本数',
-                      hintText: '默认 10，设为 0 则不限制',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelHistoryCount,
+                      hintText: l10n.hintHistoryCount,
+                      border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value != null && value.isNotEmpty) {
                         final n = int.tryParse(value);
                         if (n == null || n < 0) {
-                          return '请输入不小于 0 的数字';
+                          return l10n.validationHistoryCountInvalid;
                         }
                       }
                       return null;
@@ -1470,9 +1466,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       final count = int.tryParse(value);
                       if (count != null && count >= 0) {
                         _config = _config.copyWith(
-                          backupSetting: _config.backupSetting.copyWith(
-                            historyCount: count,
-                          ),
+                          backupSetting: _config.backupSetting.copyWith(historyCount: count),
                         );
                       }
                     },
@@ -1480,33 +1474,29 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                 ],
 
-                // WebDAV 配置
+                // WebDAV
                 if (_config.backupSetting.type == BackupType.webdav) ...[
                   TextFormField(
                     controller: _webDavUrlController,
-                    decoration: const InputDecoration(
-                      labelText: 'WebDAV地址',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelWebDavUrl,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'WebDAV地址不能为空';
+                        return l10n.validationWebDavUrlRequired;
                       }
                       return null;
                     },
                     onChanged: (value) {
                       String processedValue = value;
                       if (processedValue.endsWith('/')) {
-                        processedValue = processedValue.substring(
-                          0,
-                          processedValue.length - 1,
-                        );
+                        processedValue = processedValue.substring(0, processedValue.length - 1);
                       }
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            webDavConfig: _config.backupSetting.webDavConfig
-                                .copyWith(url: processedValue),
+                            webDavConfig: _config.backupSetting.webDavConfig.copyWith(url: processedValue),
                           ),
                         );
                       });
@@ -1516,23 +1506,20 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        '建议使用 HTTPS 连接，HTTP 下凭据将明文传输',
-                        style: TextStyle(
-                          color: Colors.orange.shade700,
-                          fontSize: 12,
-                        ),
+                        l10n.httpsWarning,
+                        style: TextStyle(color: Colors.orange.shade700, fontSize: 12),
                       ),
                     ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _webDavUsernameController,
-                    decoration: const InputDecoration(
-                      labelText: '授权账号',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelWebDavUsername,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return '授权账号不能为空';
+                        return l10n.validationWebDavUsernameRequired;
                       }
                       return null;
                     },
@@ -1540,8 +1527,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            webDavConfig: _config.backupSetting.webDavConfig
-                                .copyWith(username: value),
+                            webDavConfig: _config.backupSetting.webDavConfig.copyWith(username: value),
                           ),
                         );
                       });
@@ -1550,13 +1536,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _webDavPasswordController,
-                    decoration: const InputDecoration(
-                      labelText: '授权密码',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelWebDavPassword,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return '授权密码不能为空';
+                        return l10n.validationWebDavPasswordRequired;
                       }
                       return null;
                     },
@@ -1566,8 +1552,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            webDavConfig: _config.backupSetting.webDavConfig
-                                .copyWith(password: value),
+                            webDavConfig: _config.backupSetting.webDavConfig.copyWith(password: value),
                           ),
                         );
                       });
@@ -1576,13 +1561,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _webDavBackupDirController,
-                    decoration: const InputDecoration(
-                      labelText: '存储路径',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelStoragePath,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return '存储路径不能为空';
+                        return l10n.validationStoragePathRequired;
                       }
                       return null;
                     },
@@ -1590,8 +1575,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            webDavConfig: _config.backupSetting.webDavConfig
-                                .copyWith(backupDir: value.trim()),
+                            webDavConfig: _config.backupSetting.webDavConfig.copyWith(backupDir: value.trim()),
                           ),
                         );
                       });
@@ -1601,22 +1585,21 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () =>
-                          _launchUrl('https://help.jianguoyun.com/?p=2064'),
-                      child: const Text('如何获取配置信息'),
+                      onPressed: () => _launchUrl('https://help.jianguoyun.com/?p=2064'),
+                      child: Text(l10n.howToGetConfig),
                     ),
                   ),
                 ] else if (_config.backupSetting.type == BackupType.s3) ...[
-                  // 对象存储/S3/OSS/COS 配置
+                  // S3 config
                   TextFormField(
                     controller: _s3EndpointController,
-                    decoration: const InputDecoration(
-                      labelText: 'Endpoint URL',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelEndpointUrl,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Endpoint URL不能为空';
+                        return l10n.validationEndpointRequired;
                       }
                       return null;
                     },
@@ -1624,9 +1607,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            s3Config: _config.backupSetting.s3Config.copyWith(
-                              endpoint: value,
-                            ),
+                            s3Config: _config.backupSetting.s3Config.copyWith(endpoint: value),
                           ),
                         );
                       });
@@ -1635,13 +1616,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _s3AccessKeyIdController,
-                    decoration: const InputDecoration(
-                      labelText: 'Access Key ID',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelAccessKeyId,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Access Key ID不能为空';
+                        return l10n.validationAccessKeyRequired;
                       }
                       return null;
                     },
@@ -1649,9 +1630,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            s3Config: _config.backupSetting.s3Config.copyWith(
-                              accessKeyId: value,
-                            ),
+                            s3Config: _config.backupSetting.s3Config.copyWith(accessKeyId: value),
                           ),
                         );
                       });
@@ -1660,13 +1639,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _s3SecretAccessKeyController,
-                    decoration: const InputDecoration(
-                      labelText: 'Secret Access Key',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelSecretAccessKey,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Secret Access Key不能为空';
+                        return l10n.validationSecretKeyRequired;
                       }
                       return null;
                     },
@@ -1676,9 +1655,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            s3Config: _config.backupSetting.s3Config.copyWith(
-                              secretAccessKey: value,
-                            ),
+                            s3Config: _config.backupSetting.s3Config.copyWith(secretAccessKey: value),
                           ),
                         );
                       });
@@ -1687,13 +1664,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _s3BucketNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Bucket Name',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelBucketName,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Bucket Name不能为空';
+                        return l10n.validationBucketNameRequired;
                       }
                       return null;
                     },
@@ -1701,9 +1678,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            s3Config: _config.backupSetting.s3Config.copyWith(
-                              bucketName: value,
-                            ),
+                            s3Config: _config.backupSetting.s3Config.copyWith(bucketName: value),
                           ),
                         );
                       });
@@ -1712,18 +1687,16 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _s3BackupDirController,
-                    decoration: const InputDecoration(
-                      labelText: 'Path',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelPath,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       setState(() {
                         String processedValue = value.trim();
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            s3Config: _config.backupSetting.s3Config.copyWith(
-                              backupDir: processedValue,
-                            ),
+                            s3Config: _config.backupSetting.s3Config.copyWith(backupDir: processedValue),
                           ),
                         );
                       });
@@ -1732,17 +1705,15 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _s3RegionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Region ( 选填，默认cn-east-1)',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.labelRegion,
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       setState(() {
                         _config = _config.copyWith(
                           backupSetting: _config.backupSetting.copyWith(
-                            s3Config: _config.backupSetting.s3Config.copyWith(
-                              region: value,
-                            ),
+                            s3Config: _config.backupSetting.s3Config.copyWith(region: value),
                           ),
                         );
                       });
@@ -1753,7 +1724,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () => _launchUrl('https://s.qiniu.com/eeemeu'),
-                      child: const Text('如何获取配置信息'),
+                      child: Text(l10n.howToGetConfig),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -1766,9 +1737,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                             : Colors.grey.shade800,
                       ),
                       borderRadius: BorderRadius.circular(8),
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerLow,
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
                     ),
                     child: Row(
                       children: [
@@ -1778,15 +1747,14 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                '推荐使用七牛云对象存储',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              Text(
+                                l10n.qiniuPromoTitle,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 2),
                               TextButton(
-                                onPressed: () =>
-                                    _launchUrl('https://s.qiniu.com/fAn6ru'),
-                                child: const Text('立即注册七牛云，即获万元免费额度'),
+                                onPressed: () => _launchUrl('https://s.qiniu.com/fAn6ru'),
+                                child: Text(l10n.qiniuPromoLink),
                               ),
                             ],
                           ),
@@ -1798,16 +1766,13 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
 
                 const SizedBox(height: 32),
 
-                // 按钮
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text('取消'),
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                        child: Text(l10n.buttonCancel),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1815,122 +1780,74 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                       child: ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState?.validate() ?? false) {
-                            // 保存备份密码
                             final password = _backupPasswordController.text;
                             if (!_hasBackupPassword && password.isNotEmpty) {
                               await BackupService().saveBackupPassword(password);
                             } else if (!_hasBackupPassword) {
-                              // 如果之前没设置且现在也没输入，清除密码
                               await BackupService().saveBackupPassword('');
                             }
-                            // 如果已有密码且用户修改了
                             if (_hasBackupPassword && password.isNotEmpty) {
                               await BackupService().saveBackupPassword(password);
                             }
 
-                            // 根据备份类型决定保存哪些数据，清空其他类型的数据
                             BackupSetting newBackupSetting;
 
                             if (_config.backupSetting.type == BackupType.off) {
-                              // 类型=关闭：清空 WEBDAV 和对象存储的数据
                               newBackupSetting = _config.backupSetting.copyWith(
-                                webDavConfig: const WebDavConfig(
-                                  url: '',
-                                  backupDir: '',
-                                  username: '',
-                                  password: '',
-                                ),
-                                s3Config: const S3Config(
-                                  endpoint: '',
-                                  accessKeyId: '',
-                                  secretAccessKey: '',
-                                  bucketName: '',
-                                  backupDir: '',
-                                ),
+                                webDavConfig: const WebDavConfig(url: '', backupDir: '', username: '', password: ''),
+                                s3Config: const S3Config(endpoint: '', accessKeyId: '', secretAccessKey: '', bucketName: '', backupDir: ''),
                               );
-                            } else if (_config.backupSetting.type ==
-                                BackupType.webdav) {
-                              // 类型=WEBDAV：保存 WEBDAV 数据，清空对象存储的数据
+                            } else if (_config.backupSetting.type == BackupType.webdav) {
                               newBackupSetting = _config.backupSetting.copyWith(
-                                webDavConfig: _config.backupSetting.webDavConfig
-                                    .copyWith(
-                                      url: _webDavUrlController.text.endsWith('/')
-                                          ? _webDavUrlController.text.substring(0, _webDavUrlController.text.length - 1)
-                                          : _webDavUrlController.text,
-                                      backupDir:
-                                          _webDavBackupDirController.text,
-                                      username: _webDavUsernameController.text,
-                                      password: _webDavPasswordController.text,
-                                    ),
-                                s3Config: const S3Config(
-                                  endpoint: '',
-                                  accessKeyId: '',
-                                  secretAccessKey: '',
-                                  bucketName: '',
-                                  backupDir: '',
+                                webDavConfig: _config.backupSetting.webDavConfig.copyWith(
+                                  url: _webDavUrlController.text.endsWith('/')
+                                      ? _webDavUrlController.text.substring(0, _webDavUrlController.text.length - 1)
+                                      : _webDavUrlController.text,
+                                  backupDir: _webDavBackupDirController.text,
+                                  username: _webDavUsernameController.text,
+                                  password: _webDavPasswordController.text,
                                 ),
+                                s3Config: const S3Config(endpoint: '', accessKeyId: '', secretAccessKey: '', bucketName: '', backupDir: ''),
                               );
-                            } else if (_config.backupSetting.type ==
-                                BackupType.s3) {
-                              // 类型=对象存储：保存对象存储数据，清空 WEBDAV 的数据
+                            } else if (_config.backupSetting.type == BackupType.s3) {
                               newBackupSetting = _config.backupSetting.copyWith(
-                                webDavConfig: const WebDavConfig(
-                                  url: '',
-                                  backupDir: '',
-                                  username: '',
-                                  password: '',
+                                webDavConfig: const WebDavConfig(url: '', backupDir: '', username: '', password: ''),
+                                s3Config: _config.backupSetting.s3Config.copyWith(
+                                  endpoint: _s3EndpointController.text,
+                                  accessKeyId: _s3AccessKeyIdController.text,
+                                  secretAccessKey: _s3SecretAccessKeyController.text,
+                                  bucketName: _s3BucketNameController.text,
+                                  backupDir: _s3BackupDirController.text,
+                                  region: _s3RegionController.text,
                                 ),
-                                s3Config: _config.backupSetting.s3Config
-                                    .copyWith(
-                                      endpoint: _s3EndpointController.text,
-                                      accessKeyId:
-                                          _s3AccessKeyIdController.text,
-                                      secretAccessKey:
-                                          _s3SecretAccessKeyController.text,
-                                      bucketName: _s3BucketNameController.text,
-                                      backupDir: _s3BackupDirController.text,
-                                      region: _s3RegionController.text,
-                                    ),
                               );
                             } else {
-                              // 默认情况，保持原有逻辑
                               newBackupSetting = _config.backupSetting.copyWith(
-                                webDavConfig: _config.backupSetting.webDavConfig
-                                    .copyWith(
-                                      url: _webDavUrlController.text.endsWith('/')
-                                          ? _webDavUrlController.text.substring(0, _webDavUrlController.text.length - 1)
-                                          : _webDavUrlController.text,
-                                      backupDir:
-                                          _webDavBackupDirController.text,
-                                      username: _webDavUsernameController.text,
-                                      password: _webDavPasswordController.text,
-                                    ),
-                                s3Config: _config.backupSetting.s3Config
-                                    .copyWith(
-                                      endpoint: _s3EndpointController.text,
-                                      accessKeyId:
-                                          _s3AccessKeyIdController.text,
-                                      secretAccessKey:
-                                          _s3SecretAccessKeyController.text,
-                                      bucketName: _s3BucketNameController.text,
-                                      backupDir: _s3BackupDirController.text,
-                                      region: _s3RegionController.text,
-                                    ),
+                                webDavConfig: _config.backupSetting.webDavConfig.copyWith(
+                                  url: _webDavUrlController.text.endsWith('/')
+                                      ? _webDavUrlController.text.substring(0, _webDavUrlController.text.length - 1)
+                                      : _webDavUrlController.text,
+                                  backupDir: _webDavBackupDirController.text,
+                                  username: _webDavUsernameController.text,
+                                  password: _webDavPasswordController.text,
+                                ),
+                                s3Config: _config.backupSetting.s3Config.copyWith(
+                                  endpoint: _s3EndpointController.text,
+                                  accessKeyId: _s3AccessKeyIdController.text,
+                                  secretAccessKey: _s3SecretAccessKeyController.text,
+                                  bucketName: _s3BucketNameController.text,
+                                  backupDir: _s3BackupDirController.text,
+                                  region: _s3RegionController.text,
+                                ),
                               );
                             }
 
-                            final historyCount = int.tryParse(
-                              _historyCountController.text,
-                            );
+                            final historyCount = int.tryParse(_historyCountController.text);
                             if (historyCount != null && historyCount >= 0) {
-                              newBackupSetting = newBackupSetting.copyWith(
-                                historyCount: historyCount,
-                              );
+                              newBackupSetting = newBackupSetting.copyWith(historyCount: historyCount);
                             }
 
-                            _config = _config.copyWith(
-                              backupSetting: newBackupSetting,
-                            );
+                            _config = _config.copyWith(backupSetting: newBackupSetting);
 
                             if (!context.mounted) return;
                             Navigator.pop(context, _config);
@@ -1941,7 +1858,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text('确认'),
+                        child: Text(l10n.buttonConfirm),
                       ),
                     ),
                   ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../l10n/app_localizations.dart';
 import '../utils/style_utils.dart';
 
 /// 关于页面
@@ -36,8 +37,10 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('关于'), centerTitle: true),
+      appBar: AppBar(title: Text(l10n.aboutTitle), centerTitle: true),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -66,12 +69,12 @@ class _AboutScreenState extends State<AboutScreen> {
             _isLoading
                 ? const CircularProgressIndicator()
                 : Text(
-                    '版本 ${_packageInfo?.version ?? "未知"}',
+                    l10n.versionLabel(_packageInfo?.version ?? l10n.statusUnknownVersion),
                     style: StyleUtils.subtitleTextStyle(context),
                   ),
             const SizedBox(height: 96),
             Text(
-              '2016-2026 EasyDebug.NET All rights reserved.',
+              l10n.copyrightNotice,
               style: StyleUtils.subtitleTextStyle(context),
             ),
           ],

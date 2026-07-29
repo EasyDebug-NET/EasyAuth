@@ -78,7 +78,7 @@ class BackupService {
     try {
       // 验证配置
       if (!isConfigValid(setting)) {
-        throw ConfigException('备份配置无效', details: '请检查备份参数是否完整');
+        throw ConfigException('Invalid backup configuration', details: 'Please check that backup parameters are complete');
       }
 
       // 生成 otpauth-migration 数据
@@ -87,15 +87,15 @@ class BackupService {
         migrationData = await _generateMigrationData();
       } catch (e) {
         throw StorageException(
-          '生成备份数据失败',
-          details: '无法读取动态口令数据',
+          'Failed to generate backup data',
+          details: 'Cannot read 2FA account data',
           originalException: e is Exception ? e : null,
         );
       }
 
       // 检查是否已设置备份密码
       if (!await hasBackupPassword()) {
-        throw ConfigException('请先设置备份密码');
+        throw ConfigException('Please set a backup password first');
       }
 
       // 打包并加密
@@ -146,15 +146,15 @@ class BackupService {
         }
       } on SocketException catch (e) {
         throw NetworkException(
-          '网络连接失败',
-          details: '请检查网络连接是否正常',
+          'Network connection failed',
+          details: 'Please check your network connection',
           originalException: e,
         );
       } on NetworkException {
         rethrow;
       } catch (e) {
         throw NetworkException(
-          '上传备份时发生错误',
+          'Error uploading backup',
           details: e.toString(),
           originalException: e is Exception ? e : null,
         );
@@ -250,7 +250,7 @@ class BackupService {
       }
       // 包装未知的异常
       throw AppException(
-        '备份过程中发生错误',
+        'An error occurred during backup',
         details: e.toString(),
         originalException: e is Exception ? e : null,
       );
@@ -276,7 +276,7 @@ class BackupService {
     try {
       // 验证配置
       if (!isConfigValid(setting)) {
-        throw ConfigException('恢复配置无效', details: '请检查备份参数是否完整');
+        throw ConfigException('Invalid restore configuration', details: 'Please check that backup parameters are complete');
       }
 
       // 下载备份
@@ -315,19 +315,19 @@ class BackupService {
             region: setting.backupSetting.s3Config.region,
           );
         } else {
-          throw ConfigException('不支持的备份类型');
+          throw ConfigException('Unsupported backup type');
         }
       } on SocketException catch (e) {
         throw NetworkException(
-          '网络连接失败',
-          details: '请检查网络连接是否正常',
+          'Network connection failed',
+          details: 'Please check your network connection',
           originalException: e,
         );
       } on NetworkException {
         rethrow;
       } catch (e) {
         throw NetworkException(
-          '下载备份时发生错误',
+          'Error downloading backup',
           details: e.toString(),
           originalException: e is Exception ? e : null,
         );
@@ -344,8 +344,8 @@ class BackupService {
         rethrow;
       } catch (e) {
         throw StorageException(
-          '恢复数据失败',
-          details: '备份文件可能已损坏或密码错误',
+          'Failed to restore data',
+          details: 'Backup file may be corrupted or password is incorrect',
           originalException: e is Exception ? e : null,
         );
       } finally {
@@ -359,7 +359,7 @@ class BackupService {
       }
       // 包装未知的异常
       throw AppException(
-        '恢复过程中发生错误',
+        'An error occurred during restore',
         details: e.toString(),
         originalException: e is Exception ? e : null,
       );
@@ -384,8 +384,8 @@ class BackupService {
 
     if (backupFiles.isEmpty) {
       throw StorageException(
-        '没有找到备份文件',
-        details: 'WebDAV 存储中没有找到备份文件，请确保已经执行过备份操作',
+        'No backup files found',
+        details: 'No backup files found in WebDAV storage. Please run a backup first.',
       );
     }
     return backupFiles.first;
@@ -416,8 +416,8 @@ class BackupService {
 
     if (backupFiles.isEmpty) {
       throw StorageException(
-        '没有找到备份文件',
-        details: 'S3 存储中没有找到备份文件，请确保已经执行过备份操作',
+        'No backup files found',
+        details: 'No backup files found in S3 storage. Please run a backup first.',
       );
     }
     return backupFiles.first;
@@ -637,7 +637,7 @@ class BackupService {
   ) async {
     final password = await _secureStorage.read(key: _backupPasswordKey);
     if (password == null || password.isEmpty) {
-      throw ConfigException('备份密码未设置');
+      throw ConfigException('Backup password not set');
     }
 
     // 生成随机盐值
@@ -687,7 +687,7 @@ class BackupService {
   Future<String> _extractMigrationData(String filePath) async {
     final password = await _secureStorage.read(key: _backupPasswordKey);
     if (password == null || password.isEmpty) {
-      throw ConfigException('备份密码未设置');
+      throw ConfigException('Backup password not set');
     }
 
     final fileData = await File(filePath).readAsBytes();
@@ -699,14 +699,14 @@ class BackupService {
       // 提取盐值
       final saltFile = archive.files.firstWhere(
         (file) => file.name == _saltFileName,
-        orElse: () => throw StorageException('备份文件格式错误：缺少盐值'),
+        orElse: () => throw StorageException('Backup file format error: missing salt'),
       );
       final salt = saltFile.content as List<int>;
 
       // 提取加密数据
       final dataFile = archive.files.firstWhere(
         (file) => file.name == _dataFileName,
-        orElse: () => throw StorageException('备份文件格式错误：缺少数据'),
+        orElse: () => throw StorageException('Backup file format error: missing data'),
       );
       final encryptedBytes = dataFile.content as List<int>;
 
@@ -730,7 +730,7 @@ class BackupService {
     } catch (e) {
       if (e is ConfigException) rethrow;
       // AES-GCM 解密失败通常因为密码错误或数据损坏
-      throw StorageException('恢复数据解密失败，请确认备份密码是否正确。');
+      throw StorageException('Failed to decrypt backup data. Please verify the backup password is correct.');
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../services/otp_service.dart';
@@ -64,6 +65,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -95,11 +97,11 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Center(
                         child: Text(
-                          '扫描二维码',
-                          style: TextStyle(
+                          l10n.addScanTitle,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -128,14 +130,14 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             bottom: 100,
             left: 0,
             right: 0,
             child: Center(
               child: Text(
-                '将二维码放入框内即可自动扫描',
-                style: TextStyle(fontSize: 14, color: Colors.white70),
+                l10n.scanHintText,
+                style: const TextStyle(fontSize: 14, color: Colors.white70),
               ),
             ),
           ),
@@ -146,20 +148,22 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
 
   /// 处理扫描到的 otpauth:// 二维码数据，解析并存入数据库
   Future<void> _processScannedData(String data) async {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       if (!data.startsWith('otpauth://')) {
-        throw ValidationException('二维码格式错误，必须是 otpauth:// 格式的URI');
+        throw ValidationException(l10n.errorQrFormat);
       }
 
       final params = OtpService.parseOtpAuthUri(data);
 
       final secret = params['secret'] as String;
       if (secret.isEmpty) {
-        throw ValidationException('二维码缺少必要的密钥信息（secret）');
+        throw ValidationException(l10n.errorQrMissingSecret);
       }
 
       if (!_isValidBase32(secret)) {
-        throw ValidationException('密钥格式无效，必须是Base32编码');
+        throw ValidationException(l10n.errorSecretInvalidBase32);
       }
 
       // 转换 secret 为大写，确保 Base32 编码格式正确
@@ -182,16 +186,16 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
 
       if (mounted) {
         Navigator.pop(context, true);
-        StyleUtils.successSnackBar(context, '添加成功');
+        StyleUtils.successSnackBar(context, l10n.snackAddedSuccess);
       }
     } on ValidationException catch (e) {
-      _showErrorDialog('二维码格式错误', e.message);
+      _showErrorDialog(l10n.dialogTitleQrCodeError, e.message);
     } catch (e) {
-      String errorMessage = '无法识别此二维码';
+      String errorMessage = l10n.errorCannotRecognizeQr;
       if (e.toString().contains('Only TOTP is supported')) {
-        errorMessage = '仅支持TOTP类型的动态口令，不支持HOTP';
+        errorMessage = l10n.errorTotpOnly;
       }
-      _showErrorDialog('扫描失败', errorMessage);
+      _showErrorDialog(l10n.dialogTitleScanFailed, errorMessage);
     }
   }
 
@@ -204,6 +208,8 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
   /// 显示扫描错误对话框，提供重试和取消选项
   void _showErrorDialog(String title, String message) {
     if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
@@ -218,14 +224,14 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
                 _controller.start();
                 _isScanning = true;
               },
-              child: const Text('重试'),
+              child: Text(l10n.buttonRetry),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
-              child: const Text('取消'),
+              child: Text(l10n.buttonCancel),
             ),
           ],
         );

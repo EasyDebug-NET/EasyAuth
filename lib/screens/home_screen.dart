@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../models/setting.dart';
 import '../models/two_factor_account.dart';
@@ -122,7 +123,8 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (e) {
       debugPrint('初始化失败: $e');
       if (mounted) {
-        StyleUtils.errorSnackBar(context, '初始化失败: ${e.toString()}');
+        final l10n = AppLocalizations.of(context)!;
+        StyleUtils.errorSnackBar(context, l10n.snackInitFailed(e.toString()));
       }
     }
   }
@@ -138,8 +140,9 @@ class _HomeScreenState extends State<HomeScreen>
         _needsAuthentication = true;
       });
 
+      final l10n = AppLocalizations.of(context)!;
       bool authenticated = await _securityService.authenticate(
-        reason: '请验证身份以访问应用',
+        reason: l10n.authReasonAccess,
       );
 
       if (!authenticated) {
@@ -277,6 +280,8 @@ class _HomeScreenState extends State<HomeScreen>
   /// 构建主页面 UI：AppBar（搜索/排序/云备份）+ 动态口令列表 + FAB 添加按钮
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     // 认证过程中显示加载界面
     if (_needsAuthentication) {
       final themeColor = Theme.of(context).colorScheme.primary;
@@ -290,9 +295,9 @@ class _HomeScreenState extends State<HomeScreen>
                 valueColor: AlwaysStoppedAnimation<Color>(themeColor),
               ),
               const SizedBox(height: 16),
-              const Text('正在验证身份...'),
+              Text(l10n.loadingAuthenticating),
               const SizedBox(height: 8),
-              const Text('请验证您的生物识别信息', style: TextStyle(color: Colors.grey)),
+              Text(l10n.loadingAuthPrompt, style: const TextStyle(color: Colors.grey)),
             ],
           ),
         ),
@@ -324,10 +329,10 @@ class _HomeScreenState extends State<HomeScreen>
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    decoration: const InputDecoration(
-                      hintText: '搜索...',
+                    decoration: InputDecoration(
+                      hintText: l10n.hintSearch,
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
                 ),
@@ -355,24 +360,24 @@ class _HomeScreenState extends State<HomeScreen>
           : RefreshIndicator(
               onRefresh: _loadAccounts,
               child: _accounts.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.qr_code_scanner,
                             size: 64,
                             color: Colors.grey,
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
-                            '此处似乎尚无任何动态口令',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                            l10n.emptyNoAccounts,
+                            style: const TextStyle(fontSize: 18, color: Colors.grey),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            '点击右下角 + 添加动态口令',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                            l10n.emptyAddPrompt,
+                            style: const TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -527,18 +532,18 @@ class _HomeScreenState extends State<HomeScreen>
           icon: const Icon(Icons.add, color: Colors.white),
           color: Theme.of(context).colorScheme.surface,
           itemBuilder: (context) => [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'scan',
               child: ListTile(
-                leading: Icon(Icons.qr_code_scanner),
-                title: Text('扫描二维码'),
+                leading: const Icon(Icons.qr_code_scanner),
+                title: Text(l10n.fabScanQr),
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'manual',
               child: ListTile(
-                leading: Icon(Icons.keyboard),
-                title: Text('输入2FA密钥'),
+                leading: const Icon(Icons.keyboard),
+                title: Text(l10n.fabEnterKey),
               ),
             ),
           ],
@@ -609,13 +614,15 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 构建 HOTP 动态口令的 trailing 控件（递增按钮）
   Widget _buildHotpTrailing(TwoFactorAccount account) {
+    final l10n = AppLocalizations.of(context)!;
+
     return SizedBox(
       width: 48,
       height: 48,
       child: IconButton(
         icon: const Icon(Icons.refresh, size: 22),
         padding: EdgeInsets.zero,
-        tooltip: '递增计数器 (当前: ${account.counter})',
+        tooltip: l10n.hotpIncrementTooltip(account.counter),
         onPressed: () => _incrementCounter(account),
       ),
     );
@@ -671,19 +678,21 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 显示删除动态口令确认对话框
   Future<bool> _showDeleteConfirmDialog(TwoFactorAccount account) async {
+    final l10n = AppLocalizations.of(context)!;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除动态口令'),
-        content: Text('确定要删除动态口令 "${account.displayIssuerName}" 吗？'),
+        title: Text(l10n.dialogTitleDeleteAccount),
+        content: Text(l10n.dialogConfirmDeleteAccount(account.displayIssuerName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n.buttonCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+            child: Text(l10n.buttonDelete),
           ),
         ],
       ),
@@ -711,6 +720,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 保存排序顺序
   Future<void> _saveSortOrder() async {
+    final l10n = AppLocalizations.of(context)!;
+
     final newOrder = _accounts.map((account) => account.id).toList();
     _filteredAccounts = List.from(_accounts);
     final success = await _storageService.updateAccountOrder(newOrder);
@@ -719,12 +730,12 @@ class _HomeScreenState extends State<HomeScreen>
         _isSortingMode = false;
       });
       if (!mounted) return;
-      StyleUtils.successSnackBar(context, '排序已保存');
+      StyleUtils.successSnackBar(context, l10n.snackSortSaved);
       // 重新加载动态口令以更新显示顺序
       await _loadAccounts();
     } else {
       if (!mounted) return;
-      StyleUtils.errorSnackBar(context, '保存排序失败');
+      StyleUtils.errorSnackBar(context, l10n.snackSortSaveFailed);
     }
   }
 
@@ -785,7 +796,7 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _handleBackupButtonPressed(BuildContext buttonContext) async {
     // 检查备份配置
     if (_setting == null || _setting!.backupSetting.type == BackupType.off) {
-      // 如果备份类型是“关闭”，则跳转到备份设置页面
+      // 如果备份类型是"关闭"，则跳转到备份设置页面
       final result = await Navigator.pushNamed(
         context,
         '/settings',
@@ -820,22 +831,24 @@ class _HomeScreenState extends State<HomeScreen>
         Offset.zero & MediaQuery.of(context).size,
       );
 
+      final l10n = AppLocalizations.of(context)!;
+
       showMenu(
         context: context,
         position: position,
         items: [
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'backup',
             child: ListTile(
-              leading: Icon(Icons.cloud_upload),
-              title: Text('备份到远端'),
+              leading: const Icon(Icons.cloud_upload),
+              title: Text(l10n.backupToRemote),
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'restore',
             child: ListTile(
-              leading: Icon(Icons.cloud_download),
-              title: Text('从远端恢复'),
+              leading: const Icon(Icons.cloud_download),
+              title: Text(l10n.restoreFromRemote),
             ),
           ),
         ],
@@ -852,7 +865,7 @@ class _HomeScreenState extends State<HomeScreen>
           try {
             await _backupService.performBackup(_setting!);
             if (mounted) {
-              StyleUtils.successSnackBar(context, '备份成功');
+              StyleUtils.successSnackBar(context, l10n.snackBackupSuccess);
               setState(() {
                 _operationStatus = 1;
               });
@@ -868,14 +881,14 @@ class _HomeScreenState extends State<HomeScreen>
             }
           } catch (e) {
             if (mounted) {
-              String errorMessage = '备份失败';
+              String errorMessage = l10n.snackBackupFailed;
               String? errorDetails;
 
               if (e is AppException) {
                 errorMessage = e.message;
                 errorDetails = e.details;
               } else {
-                errorMessage = '备份失败: ${e.toString()}';
+                errorMessage = '${l10n.snackBackupFailed}: ${e.toString()}';
               }
 
               StyleUtils.errorSnackBar(context, errorMessage, errorDetails);
@@ -906,12 +919,12 @@ class _HomeScreenState extends State<HomeScreen>
           final result = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('确认恢复'),
-              content: const Text('恢复备份将覆盖当前数据，确定要继续吗？'),
+              title: Text(l10n.dialogTitleConfirmRestore),
+              content: Text(l10n.dialogConfirmRestoreBody),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('取消'),
+                  child: Text(l10n.buttonCancel),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
@@ -919,7 +932,7 @@ class _HomeScreenState extends State<HomeScreen>
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('确定恢复'),
+                  child: Text(l10n.dialogButtonConfirmRestore),
                 ),
               ],
             ),
@@ -934,7 +947,7 @@ class _HomeScreenState extends State<HomeScreen>
             try {
               await _backupService.restoreBackup(_setting!);
               if (mounted) {
-                StyleUtils.successSnackBar(context, '恢复成功');
+                StyleUtils.successSnackBar(context, l10n.snackRestoreSuccess);
                 setState(() {
                   _operationStatus = 1;
                 });
@@ -951,14 +964,14 @@ class _HomeScreenState extends State<HomeScreen>
               }
             } catch (e) {
               if (mounted) {
-                String errorMessage = '恢复失败';
+                String errorMessage = l10n.snackRestoreFailed;
                 String? errorDetails;
 
                 if (e is AppException) {
                   errorMessage = e.message;
                   errorDetails = e.details;
                 } else {
-                  errorMessage = '恢复失败: ${e.toString()}';
+                  errorMessage = '${l10n.snackRestoreFailed}: ${e.toString()}';
                 }
 
                 StyleUtils.errorSnackBar(context, errorMessage, errorDetails);
@@ -999,6 +1012,7 @@ class _MenuDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
 
     return Drawer(
       child: Column(
@@ -1032,7 +1046,7 @@ class _MenuDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.swap_horiz),
-            title: const Text('导入/导出'),
+            title: Text(l10n.drawerImportExport),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/importExport');
@@ -1040,7 +1054,7 @@ class _MenuDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.settings),
-            title: const Text('设置'),
+            title: Text(l10n.drawerSettings),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/settings');
@@ -1048,7 +1062,7 @@ class _MenuDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.info),
-            title: const Text('关于'),
+            title: Text(l10n.drawerAbout),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/about');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../utils/style_utils.dart';
@@ -67,7 +68,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
 
       if (mounted) {
         Navigator.pop(context, true);
-        StyleUtils.successSnackBar(context, '修改成功');
+        StyleUtils.successSnackBar(context, AppLocalizations.of(context)!.snackModifiedSuccess);
       }
     }
   }
@@ -75,8 +76,10 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
   /// 构建编辑表单：发行者名称 + 动态口令名称 + 保存按钮
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('修改动态口令信息')),
+      appBar: AppBar(title: Text(l10n.editTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -86,14 +89,14 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
             children: [
               TextFormField(
                 controller: _issuerController,
-                decoration: StyleUtils.inputDecoration('发行者名称', '例如：Google'),
+                decoration: StyleUtils.inputDecoration(l10n.labelIssuer, l10n.hintIssuer),
               ),
               StyleUtils.mediumSpacing,
               TextFormField(
                 controller: _nameController,
                 decoration: StyleUtils.inputDecoration(
-                  '动态口令名称',
-                  '例如：user@example.com',
+                  l10n.labelAccountName,
+                  l10n.hintAccountName,
                 ),
               ),
               const Spacer(),
@@ -101,7 +104,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
               ElevatedButton(
                 onPressed: _saveAccount,
                 style: StyleUtils.primaryButtonStyle(context),
-                child: const Text('保存'),
+                child: Text(l10n.buttonSave),
               ),
             ],
           ),

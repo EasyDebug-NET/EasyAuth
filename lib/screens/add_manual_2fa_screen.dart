@@ -1,6 +1,7 @@
 import 'package:base32/base32.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../utils/style_utils.dart';
@@ -80,7 +81,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
 
       if (mounted) {
         Navigator.pop(context, true);
-        StyleUtils.successSnackBar(context, '添加成功');
+        StyleUtils.successSnackBar(context, AppLocalizations.of(context)!.snackAddedSuccess);
       }
     }
   }
@@ -88,8 +89,10 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   /// 构建手动输入表单：发行者 + 名称 + 密钥 + 类型（TOTP/HOTP）+ 保存按钮
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('输入动态口令详情')),
+      appBar: AppBar(title: Text(l10n.addManualTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -99,26 +102,26 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
             children: [
               TextFormField(
                 controller: _issuerController,
-                decoration: StyleUtils.inputDecoration('发行者名称', '例如：Google'),
+                decoration: StyleUtils.inputDecoration(l10n.labelIssuer, l10n.hintIssuer),
               ),
               StyleUtils.mediumSpacing,
               TextFormField(
                 controller: _nameController,
                 decoration: StyleUtils.inputDecoration(
-                  '动态口令名称',
-                  '例如：user@example.com',
+                  l10n.labelAccountName,
+                  l10n.hintAccountName,
                 ),
               ),
               StyleUtils.mediumSpacing,
               TextFormField(
                 controller: _secretController,
-                decoration: StyleUtils.inputDecoration('2FA密钥', 'Base32'),
+                decoration: StyleUtils.inputDecoration(l10n.labelSecretKey, l10n.hintSecretKey),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return '请输入2FA密钥';
+                    return l10n.validationSecretRequired;
                   }
                   if (!_isValidBase32(value)) {
-                    return '无效的Base32密钥格式';
+                    return l10n.validationSecretInvalidBase32;
                   }
                   return null;
                 },
@@ -126,10 +129,10 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
               StyleUtils.mediumSpacing,
               DropdownButtonFormField<String>(
                 initialValue: _secretType,
-                decoration: StyleUtils.inputDecoration('密钥类型', null),
-                items: const [
-                  DropdownMenuItem(value: 'time', child: Text('基于时间')),
-                  DropdownMenuItem(value: 'counter', child: Text('基于计数器')),
+                decoration: StyleUtils.inputDecoration(l10n.labelSecretType, null),
+                items: [
+                  DropdownMenuItem(value: 'time', child: Text(l10n.secretTypeTime)),
+                  DropdownMenuItem(value: 'counter', child: Text(l10n.secretTypeCounter)),
                 ],
                 onChanged: (value) {
                   setState(() {
@@ -141,14 +144,14 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
                 StyleUtils.mediumSpacing,
                 TextFormField(
                   controller: _counterController,
-                  decoration: StyleUtils.inputDecoration('计数器初始值', '默认 0'),
+                  decoration: StyleUtils.inputDecoration(l10n.labelCounterInitial, l10n.hintCounterInitial),
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return '请输入计数器值';
+                      return l10n.validationCounterRequired;
                     }
                     if (int.tryParse(value) == null) {
-                      return '请输入有效的数字';
+                      return l10n.validationCounterInvalidNumber;
                     }
                     return null;
                   },
@@ -159,7 +162,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
               ElevatedButton(
                 onPressed: _saveAccount,
                 style: StyleUtils.primaryButtonStyle(context),
-                child: const Text('保存'),
+                child: Text(l10n.buttonSave),
               ),
             ],
           ),

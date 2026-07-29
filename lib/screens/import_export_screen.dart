@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../utils/style_utils.dart';
 import 'export_2fa_screen.dart';
 import 'import_2fa_screen.dart';
@@ -10,8 +11,10 @@ class ImportExportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('导入/导出')),
+      appBar: AppBar(title: Text(l10n.importExportTitle)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -26,11 +29,11 @@ class ImportExportScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               // 标题
-              Text('导入/导出', style: StyleUtils.titleTextStyle(context)),
+              Text(l10n.importExportTitle, style: StyleUtils.titleTextStyle(context)),
               StyleUtils.mediumSpacing,
               // 说明文字
               Text(
-                '您可以将自己的动态口令转移到新设备中\n支持Google Authenticator的转移动态口令',
+                l10n.importExportDescription,
                 textAlign: TextAlign.center,
                 style: StyleUtils.subtitleTextStyle(context),
               ),
@@ -48,7 +51,7 @@ class ImportExportScreen extends StatelessWidget {
                     );
                   },
                   style: StyleUtils.primaryButtonStyle(context),
-                  child: const Text('导出动态口令'),
+                  child: Text(l10n.exportAccounts),
                 ),
               ),
               StyleUtils.mediumSpacing,
@@ -65,7 +68,7 @@ class ImportExportScreen extends StatelessWidget {
                     );
                   },
                   style: StyleUtils.primaryButtonStyle(context),
-                  child: const Text('导入动态口令'),
+                  child: Text(l10n.importAccounts),
                 ),
               ),
             ],

@@ -1,0 +1,628 @@
+{
+  "@@locale": "en",
+  "@@description": "English localization for EasyAuth",
+
+  "appTitle": "EasyAuth",
+  "@appTitle": { "description": "Application title" },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": { "description": "Settings screen title" },
+
+  "aboutTitle": "About",
+  "@aboutTitle": { "description": "About screen title" },
+
+  "importExportTitle": "Import/Export",
+  "@importExportTitle": { "description": "Import/Export screen title" },
+
+  "addManualTitle": "Enter 2FA Details",
+  "@addManualTitle": { "description": "Add manual 2FA screen title" },
+
+  "addScanTitle": "Scan QR Code",
+  "@addScanTitle": { "description": "Add scan 2FA screen title" },
+
+  "editTitle": "Edit 2FA Info",
+  "@editTitle": { "description": "Edit 2FA screen title" },
+
+  "exportTitle": "Export 2FA",
+  "@exportTitle": { "description": "Export 2FA screen title" },
+
+  "importTitle": "Import 2FA",
+  "@importTitle": { "description": "Import 2FA screen title" },
+
+  "buttonSave": "Save",
+  "@buttonSave": { "description": "Save button label" },
+
+  "buttonCancel": "Cancel",
+  "@buttonCancel": { "description": "Cancel button label" },
+
+  "buttonConfirm": "Confirm",
+  "@buttonConfirm": { "description": "Confirm button label" },
+
+  "buttonDelete": "Delete",
+  "@buttonDelete": { "description": "Delete button label" },
+
+  "buttonImport": "Import",
+  "@buttonImport": { "description": "Import button label" },
+
+  "buttonExport": "Export",
+  "@buttonExport": { "description": "Export button label" },
+
+  "buttonRetry": "Retry",
+  "@buttonRetry": { "description": "Retry button label" },
+
+  "buttonOK": "OK",
+  "@buttonOK": { "description": "OK button label" },
+
+  "buttonModify": "Modify",
+  "@buttonModify": { "description": "Modify button label" },
+
+  "buttonSelectAll": "Select All",
+  "@buttonSelectAll": { "description": "Select all checkbox label" },
+
+  "buttonRestore": "Restore",
+  "@buttonRestore": { "description": "Restore button/tooltip label" },
+
+  "sectionBackupSettings": "Backup Settings",
+  "@sectionBackupSettings": { "description": "Backup settings section header" },
+
+  "sectionSecuritySettings": "Security Settings",
+  "@sectionSecuritySettings": { "description": "Security settings section header" },
+
+  "sectionLanguage": "Language",
+  "@sectionLanguage": { "description": "Language section header" },
+
+  "labelIssuer": "Issuer Name",
+  "@labelIssuer": { "description": "Issuer name field label" },
+
+  "hintIssuer": "e.g. Google",
+  "@hintIssuer": { "description": "Issuer name field placeholder" },
+
+  "labelAccountName": "Account Name",
+  "@labelAccountName": { "description": "2FA account name field label" },
+
+  "hintAccountName": "e.g. user@example.com",
+  "@hintAccountName": { "description": "2FA account name field placeholder" },
+
+  "labelSecretKey": "2FA Key",
+  "@labelSecretKey": { "description": "2FA secret key field label" },
+
+  "hintSecretKey": "Base32",
+  "@hintSecretKey": { "description": "2FA secret key field placeholder" },
+
+  "labelSecretType": "Key Type",
+  "@labelSecretType": { "description": "Secret type dropdown label" },
+
+  "secretTypeTime": "Time-based (TOTP)",
+  "@secretTypeTime": { "description": "TOTP dropdown option" },
+
+  "secretTypeCounter": "Counter-based (HOTP)",
+  "@secretTypeCounter": { "description": "HOTP dropdown option" },
+
+  "labelCounterInitial": "Initial Counter Value",
+  "@labelCounterInitial": { "description": "HOTP counter initial value field label" },
+
+  "hintCounterInitial": "Default 0",
+  "@hintCounterInitial": { "description": "HOTP counter placeholder" },
+
+  "labelBackupType": "Backup Type",
+  "@labelBackupType": { "description": "Backup type dropdown label" },
+
+  "backupTypeOff": "Off",
+  "@backupTypeOff": { "description": "Backup type: off" },
+
+  "backupTypeWebDAV": "WebDAV",
+  "@backupTypeWebDAV": { "description": "Backup type: WebDAV" },
+
+  "backupTypeS3": "Object Storage",
+  "@backupTypeS3": { "description": "Backup type: S3/object storage" },
+
+  "labelBackupPassword": "Backup Password",
+  "@labelBackupPassword": { "description": "Backup password field label" },
+
+  "hintBackupPassword": "Set backup encryption password",
+  "@hintBackupPassword": { "description": "Backup password field placeholder" },
+
+  "labelConfirmBackupPassword": "Confirm Backup Password",
+  "@labelConfirmBackupPassword": { "description": "Confirm backup password field label" },
+
+  "hintConfirmBackupPassword": "Re-enter backup password",
+  "@hintConfirmBackupPassword": { "description": "Confirm backup password field placeholder" },
+
+  "labelHistoryCount": "Keep History Versions",
+  "@labelHistoryCount": { "description": "History count field label" },
+
+  "hintHistoryCount": "Default 10, set 0 for unlimited",
+  "@hintHistoryCount": { "description": "History count field placeholder" },
+
+  "labelWebDavUrl": "WebDAV URL",
+  "@labelWebDavUrl": { "description": "WebDAV URL field label" },
+
+  "labelWebDavUsername": "Username",
+  "@labelWebDavUsername": { "description": "WebDAV username field label" },
+
+  "labelWebDavPassword": "Password",
+  "@labelWebDavPassword": { "description": "WebDAV password field label" },
+
+  "labelStoragePath": "Storage Path",
+  "@labelStoragePath": { "description": "Storage path field label" },
+
+  "labelEndpointUrl": "Endpoint URL",
+  "@labelEndpointUrl": { "description": "S3 endpoint URL field label" },
+
+  "labelAccessKeyId": "Access Key ID",
+  "@labelAccessKeyId": { "description": "S3 access key ID field label" },
+
+  "labelSecretAccessKey": "Secret Access Key",
+  "@labelSecretAccessKey": { "description": "S3 secret access key field label" },
+
+  "labelBucketName": "Bucket Name",
+  "@labelBucketName": { "description": "S3 bucket name field label" },
+
+  "labelPath": "Path",
+  "@labelPath": { "description": "S3 path field label" },
+
+  "labelRegion": "Region (optional, default cn-east-1)",
+  "@labelRegion": { "description": "S3 region field label" },
+
+  "labelAppLock": "App Lock",
+  "@labelAppLock": { "description": "App lock toggle label" },
+
+  "labelScreenshotLock": "Screenshot Lock",
+  "@labelScreenshotLock": { "description": "Screenshot lock toggle label" },
+
+  "statusNotConfigured": "Not Configured",
+  "@statusNotConfigured": { "description": "Status: not configured" },
+
+  "statusConfigured": "Configured",
+  "@statusConfigured": { "description": "Status: configured" },
+
+  "statusUnknownVersion": "Unknown",
+  "@statusUnknownVersion": { "description": "Unknown version placeholder" },
+
+  "statusUnknownTime": "Unknown Time",
+  "@statusUnknownTime": { "description": "Unknown timestamp placeholder" },
+
+  "biometricNotSupported": "Device does not support biometrics",
+  "@biometricNotSupported": { "description": "Biometric unavailable label" },
+
+  "androidOnly": "Android Only",
+  "@androidOnly": { "description": "Android-only feature label" },
+
+  "passwordAlreadySet": "Backup password is set",
+  "@passwordAlreadySet": { "description": "Password set indicator" },
+
+  "passwordTipMessage": "The backup password is used to encrypt backup files. Multiple devices must use the same password to share backups.",
+  "@passwordTipMessage": { "description": "Backup password tip message" },
+
+  "httpsWarning": "HTTPS connection is recommended. Credentials are sent in plaintext over HTTP.",
+  "@httpsWarning": { "description": "HTTP warning message" },
+
+  "howToGetConfig": "How to configure",
+  "@howToGetConfig": { "description": "How to get config link label" },
+
+  "qiniuPromoTitle": "Recommended: Qiniu Cloud Object Storage",
+  "@qiniuPromoTitle": { "description": "Qiniu promotional banner title" },
+
+  "qiniuPromoLink": "Sign up for Qiniu Cloud now for free credits",
+  "@qiniuPromoLink": { "description": "Qiniu promotional banner link text" },
+
+  "validationRequired": "This field cannot be empty",
+  "@validationRequired": { "description": "Generic required field validation" },
+
+  "validationSecretRequired": "Please enter the 2FA key",
+  "@validationSecretRequired": { "description": "Secret key required validation" },
+
+  "validationSecretInvalidBase32": "Invalid Base32 key format",
+  "@validationSecretInvalidBase32": { "description": "Invalid Base32 validation" },
+
+  "validationCounterRequired": "Please enter a counter value",
+  "@validationCounterRequired": { "description": "Counter required validation" },
+
+  "validationCounterInvalidNumber": "Please enter a valid number",
+  "@validationCounterInvalidNumber": { "description": "Counter invalid number validation" },
+
+  "validationBackupPasswordRequired": "Backup password cannot be empty",
+  "@validationBackupPasswordRequired": { "description": "Backup password required" },
+
+  "validationBackupPasswordMinLength": "Backup password must be at least 8 characters",
+  "@validationBackupPasswordMinLength": { "description": "Backup password min length" },
+
+  "validationConfirmPasswordRequired": "Confirm password cannot be empty",
+  "@validationConfirmPasswordRequired": { "description": "Confirm password required" },
+
+  "validationPasswordMismatch": "Passwords do not match",
+  "@validationPasswordMismatch": { "description": "Password mismatch validation" },
+
+  "validationHistoryCountInvalid": "Please enter a number no less than 0",
+  "@validationHistoryCountInvalid": { "description": "History count validation" },
+
+  "validationWebDavUrlRequired": "WebDAV URL cannot be empty",
+  "@validationWebDavUrlRequired": { "description": "WebDAV URL required" },
+
+  "validationWebDavUsernameRequired": "Username cannot be empty",
+  "@validationWebDavUsernameRequired": { "description": "WebDAV username required" },
+
+  "validationWebDavPasswordRequired": "Password cannot be empty",
+  "@validationWebDavPasswordRequired": { "description": "WebDAV password required" },
+
+  "validationStoragePathRequired": "Storage path cannot be empty",
+  "@validationStoragePathRequired": { "description": "Storage path required" },
+
+  "validationEndpointRequired": "Endpoint URL cannot be empty",
+  "@validationEndpointRequired": { "description": "Endpoint URL required" },
+
+  "validationAccessKeyRequired": "Access Key ID cannot be empty",
+  "@validationAccessKeyRequired": { "description": "Access Key ID required" },
+
+  "validationSecretKeyRequired": "Secret Access Key cannot be empty",
+  "@validationSecretKeyRequired": { "description": "Secret Access Key required" },
+
+  "validationBucketNameRequired": "Bucket Name cannot be empty",
+  "@validationBucketNameRequired": { "description": "Bucket Name required" },
+
+  "snackAddedSuccess": "Added successfully",
+  "@snackAddedSuccess": { "description": "SnackBar: account added" },
+
+  "snackModifiedSuccess": "Modified successfully",
+  "@snackModifiedSuccess": { "description": "SnackBar: account modified" },
+
+  "snackBackupSuccess": "Backup successful",
+  "@snackBackupSuccess": { "description": "SnackBar: backup successful" },
+
+  "snackBackupFailed": "Backup failed",
+  "@snackBackupFailed": { "description": "SnackBar: backup failed" },
+
+  "snackRestoreSuccess": "Restore successful",
+  "@snackRestoreSuccess": { "description": "SnackBar: restore successful" },
+
+  "snackRestoreFailed": "Restore failed",
+  "@snackRestoreFailed": { "description": "SnackBar: restore failed" },
+
+  "snackSortSaved": "Sort order saved",
+  "@snackSortSaved": { "description": "SnackBar: sort order saved" },
+
+  "snackSortSaveFailed": "Failed to save sort order",
+  "@snackSortSaveFailed": { "description": "SnackBar: sort save failed" },
+
+  "snackInitFailed": "Initialization failed: {error}",
+  "@snackInitFailed": {
+    "description": "SnackBar: init failed with error",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "snackLoadConfigFailed": "Failed to load config: {error}",
+  "@snackLoadConfigFailed": {
+    "description": "SnackBar: config load failed",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "snackSaveConfigFailed": "Failed to save config: {error}",
+  "@snackSaveConfigFailed": {
+    "description": "SnackBar: config save failed",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "snackNotConfigured": "Backup parameters not configured",
+  "@snackNotConfigured": { "description": "SnackBar: backup not configured" },
+
+  "snackSelectBackupTypeFirst": "Please select a backup type first",
+  "@snackSelectBackupTypeFirst": { "description": "SnackBar: select backup type first" },
+
+  "snackConfigureBackupFirst": "Please configure complete backup parameters first",
+  "@snackConfigureBackupFirst": { "description": "SnackBar: configure backup first" },
+
+  "snackScreenshotLockOn": "Screenshot lock enabled",
+  "@snackScreenshotLockOn": { "description": "SnackBar: screenshot lock on" },
+
+  "snackScreenshotLockOff": "Screenshot lock disabled",
+  "@snackScreenshotLockOff": { "description": "SnackBar: screenshot lock off" },
+
+  "snackScreenshotLockError": "Failed to update screenshot lock: {error}",
+  "@snackScreenshotLockError": {
+    "description": "SnackBar: screenshot lock error",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "snackBiometricNotAvailable": "Device does not support biometrics, cannot enable app lock",
+  "@snackBiometricNotAvailable": { "description": "SnackBar: biometric not available" },
+
+  "snackAppLockEnabled": "App lock enabled",
+  "@snackAppLockEnabled": { "description": "SnackBar: app lock on" },
+
+  "snackAppLockDisabled": "App lock disabled",
+  "@snackAppLockDisabled": { "description": "SnackBar: app lock off" },
+
+  "snackAppLockDisableFailed": "Authentication failed, cannot disable app lock",
+  "@snackAppLockDisableFailed": { "description": "SnackBar: app lock disable failed" },
+
+  "snackDeleteSuccess": "Deleted successfully",
+  "@snackDeleteSuccess": { "description": "SnackBar: delete success" },
+
+  "snackDeleteFailed": "Delete failed",
+  "@snackDeleteFailed": { "description": "SnackBar: delete failed" },
+
+  "snackLoadFailed": "Load failed: {error}",
+  "@snackLoadFailed": {
+    "description": "SnackBar: load failed",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "snackImportSuccess": "Successfully imported {count} accounts",
+  "@snackImportSuccess": {
+    "description": "SnackBar: import success count",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "snackImportNone": "No accounts were successfully imported",
+  "@snackImportNone": { "description": "SnackBar: no accounts imported" },
+
+  "snackImportError": "Error importing accounts",
+  "@snackImportError": { "description": "SnackBar: import error" },
+
+  "snackSelectAccountsToImport": "Please select accounts to import",
+  "@snackSelectAccountsToImport": { "description": "SnackBar: no accounts selected" },
+
+  "snackSelectAtLeastOne": "Please select at least one account",
+  "@snackSelectAtLeastOne": { "description": "SnackBar: select at least one" },
+
+  "snackQrCodeGenerateError": "Error generating QR code",
+  "@snackQrCodeGenerateError": { "description": "SnackBar: QR code generation error" },
+
+  "dialogTitleDeleteAccount": "Delete 2FA Account",
+  "@dialogTitleDeleteAccount": { "description": "Dialog: delete account title" },
+
+  "dialogConfirmDeleteAccount": "Are you sure you want to delete \"{name}\"?",
+  "@dialogConfirmDeleteAccount": {
+    "description": "Dialog: confirm delete account body",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "dialogTitleConfirmRestore": "Confirm Restore",
+  "@dialogTitleConfirmRestore": { "description": "Dialog: confirm restore title" },
+
+  "dialogConfirmRestoreBody": "Restoring will overwrite current data. Are you sure you want to continue?",
+  "@dialogConfirmRestoreBody": { "description": "Dialog: confirm restore body" },
+
+  "dialogButtonConfirmRestore": "Confirm Restore",
+  "@dialogButtonConfirmRestore": { "description": "Dialog: confirm restore button" },
+
+  "dialogTitleError": "Error",
+  "@dialogTitleError": { "description": "Dialog: error title" },
+
+  "dialogTitleScanFailed": "Scan Failed",
+  "@dialogTitleScanFailed": { "description": "Dialog: scan failed title" },
+
+  "dialogTitleQrCodeError": "QR Code Format Error",
+  "@dialogTitleQrCodeError": { "description": "Dialog: QR code error title" },
+
+  "dialogTitleConfirmDelete": "Confirm Delete",
+  "@dialogTitleConfirmDelete": { "description": "Dialog: confirm delete title" },
+
+  "dialogConfirmDeleteBackups": "Are you sure you want to delete the selected {count} backup files? This action cannot be undone.",
+  "@dialogConfirmDeleteBackups": {
+    "description": "Dialog: confirm delete backups body",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "dialogConfirmRestoreFile": "Are you sure you want to restore \"{name}\"?\nThis will overwrite all current data.",
+  "@dialogConfirmRestoreFile": {
+    "description": "Dialog: confirm restore file body",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "loadingConfig": "Loading config...",
+  "@loadingConfig": { "description": "Loading: config" },
+
+  "loadingOperation": "Processing...",
+  "@loadingOperation": { "description": "Loading: operation in progress" },
+
+  "loadingPleaseWait": "Please wait",
+  "@loadingPleaseWait": { "description": "Loading: please wait" },
+
+  "loadingAuthenticating": "Authenticating...",
+  "@loadingAuthenticating": { "description": "Loading: authenticating" },
+
+  "loadingAuthPrompt": "Please verify your biometrics",
+  "@loadingAuthPrompt": { "description": "Loading: biometric prompt" },
+
+  "authReasonAccess": "Please verify your identity to access the app",
+  "@authReasonAccess": { "description": "Auth: access reason" },
+
+  "authReasonEnable": "Please verify your identity to enable app lock",
+  "@authReasonEnable": { "description": "Auth: enable lock reason" },
+
+  "authReasonDisable": "Please verify your identity to disable app lock",
+  "@authReasonDisable": { "description": "Auth: disable lock reason" },
+
+  "emptyNoAccounts": "No 2FA accounts yet",
+  "@emptyNoAccounts": { "description": "Empty state: no accounts title" },
+
+  "emptyAddPrompt": "Tap the + button to add an account",
+  "@emptyAddPrompt": { "description": "Empty state: add prompt" },
+
+  "emptyNoBackupFiles": "No backup files found",
+  "@emptyNoBackupFiles": { "description": "Empty state: no backups" },
+
+  "hintSearch": "Search...",
+  "@hintSearch": { "description": "Search field hint" },
+
+  "drawerImportExport": "Import/Export",
+  "@drawerImportExport": { "description": "Drawer: import/export" },
+
+  "drawerSettings": "Settings",
+  "@drawerSettings": { "description": "Drawer: settings" },
+
+  "drawerAbout": "About",
+  "@drawerAbout": { "description": "Drawer: about" },
+
+  "backupConfigTitle": "Backup Parameter Configuration",
+  "@backupConfigTitle": { "description": "Backup config dialog title" },
+
+  "backupToRemote": "Backup to Remote",
+  "@backupToRemote": { "description": "Button: backup to remote" },
+
+  "restoreFromRemote": "Restore from Remote",
+  "@restoreFromRemote": { "description": "Button: restore from remote" },
+
+  "manageRemoteBackups": "Manage Remote Backups",
+  "@manageRemoteBackups": { "description": "Button: manage remote backups" },
+
+  "scanHintText": "Place the QR code in the frame to scan",
+  "@scanHintText": { "description": "Scan: hint text" },
+
+  "exportScanPrompt": "Please scan this QR code with another device",
+  "@exportScanPrompt": { "description": "Export: scan prompt" },
+
+  "fabScanQr": "Scan QR Code",
+  "@fabScanQr": { "description": "FAB: scan QR code" },
+
+  "fabEnterKey": "Enter 2FA Key",
+  "@fabEnterKey": { "description": "FAB: enter key" },
+
+  "hotpIncrementTooltip": "Increment counter (current: {counter})",
+  "@hotpIncrementTooltip": {
+    "description": "HOTP: increment counter tooltip",
+    "placeholders": {
+      "counter": { "type": "int" }
+    }
+  },
+
+  "importExportDescription": "You can transfer your 2FA accounts to a new device\nCompatible with Google Authenticator migration",
+  "@importExportDescription": { "description": "Import/Export: description" },
+
+  "exportAccounts": "Export Accounts",
+  "@exportAccounts": { "description": "Button: export accounts" },
+
+  "importAccounts": "Import Accounts",
+  "@importAccounts": { "description": "Button: import accounts" },
+
+  "copyrightNotice": "2016-2026 EasyDebug.NET All rights reserved.",
+  "@copyrightNotice": { "description": "About: copyright notice" },
+
+  "errorQrFormat": "Invalid QR code format. Must be otpauth:// URI.",
+  "@errorQrFormat": { "description": "Error: QR format" },
+
+  "errorQrMissingSecret": "QR code is missing the required secret key",
+  "@errorQrMissingSecret": { "description": "Error: missing secret" },
+
+  "errorSecretInvalidBase32": "Invalid key format. Must be Base32 encoded.",
+  "@errorSecretInvalidBase32": { "description": "Error: invalid Base32" },
+
+  "errorCannotRecognizeQr": "Cannot recognize this QR code",
+  "@errorCannotRecognizeQr": { "description": "Error: cannot recognize QR" },
+
+  "errorTotpOnly": "Only TOTP type is supported, HOTP is not supported in QR scan",
+  "@errorTotpOnly": { "description": "Error: TOTP only" },
+
+  "errorQrDataFormat": "QR code data format error",
+  "@errorQrDataFormat": { "description": "Error: QR data format" },
+
+  "errorInvalidMigrationQr": "Invalid migration QR code",
+  "@errorInvalidMigrationQr": { "description": "Error: invalid migration QR" },
+
+  "errorInvalidQrDataFormat": "Invalid QR code data format",
+  "@errorInvalidQrDataFormat": { "description": "Error: invalid QR data format" },
+
+  "errorCannotOpenUrl": "Cannot open link. Please check if a browser is installed.",
+  "@errorCannotOpenUrl": { "description": "Error: cannot open URL" },
+
+  "errorOpenUrlFailed": "Failed to open link: {error}",
+  "@errorOpenUrlFailed": {
+    "description": "Error: open URL failed",
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "exceptionConfigInvalid": "Invalid backup configuration",
+  "@exceptionConfigInvalid": { "description": "Exception: invalid config" },
+
+  "exceptionConfigCheckParams": "Please check that backup parameters are complete",
+  "@exceptionConfigCheckParams": { "description": "Exception: check config params" },
+
+  "exceptionGenerateDataFailed": "Failed to generate backup data",
+  "@exceptionGenerateDataFailed": { "description": "Exception: generate data failed" },
+
+  "exceptionCannotReadAccounts": "Cannot read 2FA account data",
+  "@exceptionCannotReadAccounts": { "description": "Exception: cannot read accounts" },
+
+  "exceptionSetPasswordFirst": "Please set a backup password first",
+  "@exceptionSetPasswordFirst": { "description": "Exception: set password first" },
+
+  "exceptionPasswordNotSet": "Backup password not set",
+  "@exceptionPasswordNotSet": { "description": "Exception: password not set" },
+
+  "exceptionNetworkFailed": "Network connection failed",
+  "@exceptionNetworkFailed": { "description": "Exception: network failed" },
+
+  "exceptionCheckNetwork": "Please check your network connection",
+  "@exceptionCheckNetwork": { "description": "Exception: check network" },
+
+  "exceptionUploadError": "Error occurred while uploading backup",
+  "@exceptionUploadError": { "description": "Exception: upload error" },
+
+  "exceptionBackupError": "An error occurred during backup",
+  "@exceptionBackupError": { "description": "Exception: backup error" },
+
+  "exceptionRestoreConfigInvalid": "Invalid restore configuration",
+  "@exceptionRestoreConfigInvalid": { "description": "Exception: restore config invalid" },
+
+  "exceptionUnsupportedBackupType": "Unsupported backup type",
+  "@exceptionUnsupportedBackupType": { "description": "Exception: unsupported backup type" },
+
+  "exceptionDownloadError": "Error occurred while downloading backup",
+  "@exceptionDownloadError": { "description": "Exception: download error" },
+
+  "exceptionRestoreDataFailed": "Failed to restore data",
+  "@exceptionRestoreDataFailed": { "description": "Exception: restore data failed" },
+
+  "exceptionBackupCorrupted": "Backup file may be corrupted or password is incorrect",
+  "@exceptionBackupCorrupted": { "description": "Exception: backup corrupted" },
+
+  "exceptionRestoreError": "An error occurred during restore",
+  "@exceptionRestoreError": { "description": "Exception: restore error" },
+
+  "exceptionNoBackupFound": "No backup files found",
+  "@exceptionNoBackupFound": { "description": "Exception: no backup found" },
+
+  "exceptionNoBackupWebDav": "No backup files found in WebDAV storage. Please run a backup first.",
+  "@exceptionNoBackupWebDav": { "description": "Exception: no backup in WebDAV" },
+
+  "exceptionNoBackupS3": "No backup files found in S3 storage. Please run a backup first.",
+  "@exceptionNoBackupS3": { "description": "Exception: no backup in S3" },
+
+  "exceptionFormatMissingSalt": "Backup file format error: missing salt",
+  "@exceptionFormatMissingSalt": { "description": "Exception: missing salt" },
+
+  "exceptionFormatMissingData": "Backup file format error: missing data",
+  "@exceptionFormatMissingData": { "description": "Exception: missing data" },
+
+  "exceptionDecryptFailed": "Failed to decrypt backup data. Please verify the backup password is correct.",
+  "@exceptionDecryptFailed": { "description": "Exception: decrypt failed" },
+
+  "versionLabel": "Version {version}",
+  "@versionLabel": {
+    "description": "Version label on about screen",
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  }
+}

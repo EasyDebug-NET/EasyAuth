@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../utils/qr_utils.dart';
@@ -44,6 +45,8 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
   /// 优先使用 [QrUtils.parseMigrationData] 解析 Protocol Buffers 格式，
   /// 如果解析结果为空则尝试 JSON 格式兼容解析。
   void _processQrCode(String code) {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       final accounts = QrUtils.parseMigrationData(code);
 
@@ -77,16 +80,16 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                   _selectedAccounts = [];
                 });
               } else {
-                _showErrorDialog('二维码数据格式错误');
+                _showErrorDialog(l10n.errorQrDataFormat);
               }
             } else {
-              _showErrorDialog('二维码数据格式错误');
+              _showErrorDialog(l10n.errorQrDataFormat);
             }
           } else {
-            _showErrorDialog('无效的迁移二维码');
+            _showErrorDialog(l10n.errorInvalidMigrationQr);
           }
         } catch (e) {
-          _showErrorDialog('无效的二维码数据格式');
+          _showErrorDialog(l10n.errorInvalidQrDataFormat);
         }
       }
     } catch (e) {
@@ -96,10 +99,12 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
 
   /// 显示错误提示对话框，允许重新扫描
   void _showErrorDialog(String message) {
+    final l10n = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('错误'),
+        title: Text(l10n.dialogTitleError),
         content: Text(message),
         actions: [
           TextButton(
@@ -107,7 +112,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
               Navigator.of(context).pop();
               _resetScanner();
             },
-            child: const Text('确定'),
+            child: Text(l10n.buttonOK),
           ),
         ],
       ),
@@ -126,9 +131,11 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
   Future<void> _importAccounts() async {
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       if (_selectedAccounts.isEmpty) {
-        StyleUtils.errorSnackBar(context, '请选择要导入的动态口令');
+        StyleUtils.errorSnackBar(context, l10n.snackSelectAccountsToImport);
         return;
       }
 
@@ -171,16 +178,16 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
       if (!mounted) return;
 
       if (importedCount > 0) {
-        StyleUtils.successSnackBar(context, '成功导入 $importedCount 个动态口令');
+        StyleUtils.successSnackBar(context, l10n.snackImportSuccess(importedCount));
       } else {
-        StyleUtils.errorSnackBar(context, '没有成功导入任何动态口令');
+        StyleUtils.errorSnackBar(context, l10n.snackImportNone);
       }
 
       // 导入成功后直接返回首页
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) {
-        StyleUtils.errorSnackBar(context, '导入动态口令时出错');
+        StyleUtils.errorSnackBar(context, l10n.snackImportError);
       }
     }
   }
@@ -189,12 +196,13 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: _importedAccounts.isNotEmpty
           ? AppBar(
-              title: const Text('导入动态口令'),
+              title: Text(l10n.importTitle),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.pop(context),
@@ -230,11 +238,11 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                             icon: const Icon(Icons.arrow_back, color: Colors.white),
                             onPressed: () => Navigator.pop(context),
                           ),
-                          const Expanded(
+                          Expanded(
                             child: Center(
                               child: Text(
-                                '扫描二维码',
-                                style: TextStyle(
+                                l10n.addScanTitle,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -263,14 +271,14 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                     ),
                   ),
                 ),
-                const Positioned(
+                Positioned(
                   bottom: 100,
                   left: 0,
                   right: 0,
                   child: Center(
                     child: Text(
-                      '将二维码放入框内即可自动扫描',
-                      style: TextStyle(fontSize: 14, color: Colors.white70),
+                      l10n.scanHintText,
+                      style: const TextStyle(fontSize: 14, color: Colors.white70),
                     ),
                   ),
                 ),
@@ -324,7 +332,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
                       child: ElevatedButton(
                         onPressed: _importAccounts,
                         style: StyleUtils.primaryButtonStyle(context),
-                        child: const Text('导入'),
+                        child: Text(l10n.buttonImport),
                       ),
                     ),
                   ),

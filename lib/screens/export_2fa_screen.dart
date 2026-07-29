@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr/qr.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/two_factor_account.dart';
 import '../services/storage_service.dart';
 import '../utils/qr_utils.dart';
@@ -45,6 +46,8 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
 
   /// 根据选中的动态口令生成迁移二维码数据
   void _generateQrcode() {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       final selectedAccounts = _accounts.where((account) {
         final index = _accounts.indexOf(account);
@@ -52,7 +55,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
       }).toList();
 
       if (selectedAccounts.isEmpty) {
-        StyleUtils.errorSnackBar(context, '请至少选择一个动态口令');
+        StyleUtils.errorSnackBar(context, l10n.snackSelectAtLeastOne);
         return;
       }
 
@@ -61,7 +64,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
         _qrcodeData = migrationData;
       });
     } catch (e) {
-      StyleUtils.errorSnackBar(context, '生成二维码时出错');
+      StyleUtils.errorSnackBar(context, l10n.snackQrCodeGenerateError);
     }
   }
 
@@ -106,8 +109,10 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
   /// 构建导出界面：动态口令选择列表 + 导出按钮，或二维码展示
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('导出动态口令')),
+      appBar: AppBar(title: Text(l10n.exportTitle)),
       body: _qrcodeData == null
           ? Column(
               children: [
@@ -142,7 +147,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
                     child: ElevatedButton(
                       onPressed: _generateQrcode,
                       style: StyleUtils.primaryButtonStyle(context),
-                      child: const Text('导出'),
+                      child: Text(l10n.buttonExport),
                     ),
                   ),
                 ),
@@ -157,9 +162,9 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
                     children: [
                       _QrCodeWidget(data: _qrcodeData!, size: 260),
                       const SizedBox(height: 24),
-                      const Text(
-                        '请使用另一台设备扫描此二维码',
-                        style: TextStyle(fontSize: 16),
+                      Text(
+                        l10n.exportScanPrompt,
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ],
                   ),
