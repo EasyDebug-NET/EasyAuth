@@ -88,6 +88,10 @@ class LocaleProvider extends ChangeNotifier {
         return const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
       case 'zh':
         return const Locale('zh');
+      case 'ja':
+        return const Locale('ja');
+      case 'ko':
+        return const Locale('ko');
       case 'en':
       default:
         return const Locale('en');
@@ -101,7 +105,7 @@ class LocaleProvider extends ChangeNotifier {
       if (locale.scriptCode == 'Hans') return 'zh-Hans';
       return 'zh';
     }
-    return 'en';
+    return locale.languageCode;
   }
 
   /// 保存语言设置
