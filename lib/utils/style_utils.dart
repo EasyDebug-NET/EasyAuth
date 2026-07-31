@@ -41,7 +41,7 @@ class StyleUtils {
   /// 锁容器样式
   static BoxDecoration lockContainerStyle(BuildContext context) {
     return BoxDecoration(
-      color: Theme.of(context).colorScheme.primary.withAlpha(230),
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.9),
       borderRadius: BorderRadius.circular(8),
     );
   }

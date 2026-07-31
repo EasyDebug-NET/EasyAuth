@@ -68,7 +68,8 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
         '',
         _issuerController.text.isEmpty ? null : _issuerController.text,
         _nameController.text.isEmpty ? null : _nameController.text,
-        _secretController.text,
+        // 转换 secret 为大写，确保 Base32 编码格式正确
+        _secretController.text.toUpperCase(),
         30,
         'SHA1',
         DateTime.now(),

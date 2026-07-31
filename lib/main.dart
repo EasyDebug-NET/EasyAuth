@@ -58,8 +58,6 @@ class _MyAppState extends State<MyApp> {
     final backupService = BackupService();
     try {
       _setting = await backupService.loadConfig();
-      // 初始化时设置截屏锁状态
-      await _updateScreenshotLock();
     } catch (e) {
       _setting = const Setting(
         backupSetting: BackupSetting(
@@ -83,14 +81,9 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         _isLoading = false;
       });
+      // 标记加载完成后立即应用截屏锁
+      await _updateScreenshotLock();
     }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 依赖变化时更新截屏锁状态
-    _updateScreenshotLock();
   }
 
   /// 更新截屏锁状态

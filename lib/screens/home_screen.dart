@@ -77,9 +77,6 @@ class _HomeScreenState extends State<HomeScreen>
   /// 下载图标闪烁状态
   bool _isDownloadIconFilling = false;
 
-  /// 图标闪烁定时器
-  Timer? _iconBlinkTimer;
-
   /// 搜索防抖计时器
   Timer? _searchDebounceTimer;
 
@@ -169,21 +166,27 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final accounts = await _storageService.getAllAccounts();
 
-      // 仅当数据真正变化时才重建 UI，避免不必要的刷新
-      if (_accounts.length != accounts.length ||
-          !_accounts.every(
-            (account) => accounts.any(
-              (newAccount) =>
-                  newAccount.id == account.id &&
-                  newAccount.issuer == account.issuer &&
-                  newAccount.name == account.name &&
-                  newAccount.secret == account.secret &&
-                  newAccount.period == account.period &&
-                  newAccount.algorithm == account.algorithm &&
-                  newAccount.type == account.type &&
-                  newAccount.counter == account.counter,
-            ),
-          )) {
+      // 使用 ID 映射对比，正确检测新增/删除/修改
+      final oldMap = {for (final a in _accounts) a.id: a};
+      var changed = _accounts.length != accounts.length;
+      if (!changed) {
+        for (final newAccount in accounts) {
+          final oldAccount = oldMap[newAccount.id];
+          if (oldAccount == null ||
+              oldAccount.issuer != newAccount.issuer ||
+              oldAccount.name != newAccount.name ||
+              oldAccount.secret != newAccount.secret ||
+              oldAccount.period != newAccount.period ||
+              oldAccount.algorithm != newAccount.algorithm ||
+              oldAccount.type != newAccount.type ||
+              oldAccount.counter != newAccount.counter) {
+            changed = true;
+            break;
+          }
+        }
+      }
+
+      if (changed) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           setState(() {
@@ -214,7 +217,6 @@ class _HomeScreenState extends State<HomeScreen>
     _timer?.cancel();
     _loadAccountsDebounceTimer?.cancel();
     _searchDebounceTimer?.cancel();
-    _iconBlinkTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -403,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen>
                           },
                           confirmDismiss: (direction) async {
                             if (direction == DismissDirection.startToEnd) {
-                              await _showEditDialog(account);
+                              await _navigateToEdit(account);
                               return false;
                             } else {
                               await _showDeleteConfirmDialog(account);
@@ -665,13 +667,15 @@ class _HomeScreenState extends State<HomeScreen>
           _codes[account.id] = 'ERROR';
           debugPrint('生成动态码失败 - 动态口令 ${account.displayIssuerName}: $e');
         }
-        _remainingSeconds[account.id] = OtpService.getRemainingSeconds(period: account.period);
+        _remainingSeconds[account.id] = account.isHotp
+            ? 0
+            : OtpService.getRemainingSeconds(period: account.period);
       }
     });
   }
 
-  /// 跳转到编辑动态口令页面
-  Future<void> _showEditDialog(TwoFactorAccount account) async {
+  /// 导航到编辑动态口令页面
+  Future<void> _navigateToEdit(TwoFactorAccount account) async {
     await Navigator.pushNamed(context, '/edit', arguments: account);
     await _loadAccounts();
   }

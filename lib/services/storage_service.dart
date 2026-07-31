@@ -46,16 +46,16 @@ class StorageService {
           ? (jsonDecode(indexJson) as List).cast<String>()
           : <String>[];
 
-      // 先写索引，避免崩溃留下无引用的孤立数据
+      // 先写账户数据，再写索引，避免崩溃留下指向不存在数据的孤立索引
+      await _secureStorage.write(
+        key: '$_accountPrefix$id',
+        value: jsonEncode(accountWithId.toJson()),
+      );
+
       ids.add(id);
       await _secureStorage.write(
         key: _accountsIndexKey,
         value: jsonEncode(ids),
-      );
-
-      await _secureStorage.write(
-        key: '$_accountPrefix$id',
-        value: jsonEncode(accountWithId.toJson()),
       );
 
       return id;

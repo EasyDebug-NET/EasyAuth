@@ -137,7 +137,7 @@ class QrUtils {
     }
   }
 
-  //  Protobuf 手动解码 
+  // Protobuf 手动解码
 
   static Map<String, dynamic> _decodeMigrationPayload(Uint8List data) {
     final result = <String, dynamic>{
@@ -319,7 +319,7 @@ class QrUtils {
     return newOffset > data.length ? data.length : newOffset;
   }
 
-  //  Protobuf 手动编码 
+  // Protobuf 手动编码
 
   static String generateMigrationData(List<Map<String, dynamic>> accounts) {
     final buffer = <int>[];
@@ -327,25 +327,25 @@ class QrUtils {
     // field 1: repeated OtpParameters otp_parameters
     for (final account in accounts) {
       final otpBytes = _encodeOtpParameters(account);
-      buffer.add(0x0a); // tag = 1 << 3 | 2
+      buffer.add(0x0a); // tag =1 << 3 | 2
       buffer.addAll(_writeVarint(otpBytes.length));
       buffer.addAll(otpBytes);
     }
 
     // field 2: int32 version = 1
-    buffer.add(0x10); // tag = 2 << 3 | 0
+    buffer.add(0x10); // tag =2 << 3 | 0
     buffer.addAll(_writeVarint(1));
 
     // field 3: int32 batch_size = 1
-    buffer.add(0x18); // tag = 3 << 3 | 0
+    buffer.add(0x18); // tag =3 << 3 | 0
     buffer.addAll(_writeVarint(1));
 
     // field 4: int32 batch_index = 0
-    buffer.add(0x20); // tag = 4 << 3 | 0
+    buffer.add(0x20); // tag =4 << 3 | 0
     buffer.addAll(_writeVarint(0));
 
     // field 5: int32 batch_id (使用随机数或固定值)
-    buffer.add(0x28); // tag = 5 << 3 | 0
+    buffer.add(0x28); // tag =5 << 3 | 0
     buffer.addAll(_writeVarint(1));
 
     final data = Uint8List.fromList(buffer);
@@ -359,7 +359,7 @@ class QrUtils {
     // field 1: bytes secret
     if (account.containsKey('secret') && account['secret'] != null) {
       final secret = base32.decode(account['secret'] as String);
-      buffer.add(0x0a); // tag = 1 << 3 | 2
+      buffer.add(0x0a); // tag =1 << 3 | 2
       buffer.addAll(_writeVarint(secret.length));
       buffer.addAll(secret);
     }
@@ -367,7 +367,7 @@ class QrUtils {
     // field 2: string name
     if (account.containsKey('name') && account['name'] != null) {
       final nameBytes = utf8.encode(account['name'] as String);
-      buffer.add(0x12); // tag = 2 << 3 | 2
+      buffer.add(0x12); // tag =2 << 3 | 2
       buffer.addAll(_writeVarint(nameBytes.length));
       buffer.addAll(nameBytes);
     }
@@ -377,7 +377,7 @@ class QrUtils {
       final issuer = account['issuer'] as String;
       if (issuer.isNotEmpty) {
         final issuerBytes = utf8.encode(issuer);
-        buffer.add(0x1a); // tag = 3 << 3 | 2
+        buffer.add(0x1a); // tag =3 << 3 | 2
         buffer.addAll(_writeVarint(issuerBytes.length));
         buffer.addAll(issuerBytes);
       }
@@ -386,14 +386,14 @@ class QrUtils {
     // field 4: Algorithm algorithm
     if (account.containsKey('algorithm')) {
       final algoValue = _algoToInt(account['algorithm'] as String);
-      buffer.add(0x20); // tag = 4 << 3 | 0
+      buffer.add(0x20); // tag =4 << 3 | 0
       buffer.addAll(_writeVarint(algoValue));
     }
 
     // field 5: int32 digits
     if (account.containsKey('digits')) {
       final digits = account['digits'] as int;
-      buffer.add(0x28); // tag = 5 << 3 | 0
+      buffer.add(0x28); // tag =5 << 3 | 0
       buffer.addAll(_writeVarint(digits));
     }
 
@@ -401,21 +401,21 @@ class QrUtils {
     if (account.containsKey('type')) {
       final type = account['type'] as String;
       final typeValue = type == 'hotp' ? 1 : 2;
-      buffer.add(0x30); // tag = 6 << 3 | 0
+      buffer.add(0x30); // tag =6 << 3 | 0
       buffer.addAll(_writeVarint(typeValue));
     }
 
     // field 7: int64 counter
     if (account.containsKey('counter')) {
       final counter = account['counter'] as int;
-      buffer.add(0x38); // tag = 7 << 3 | 0
+      buffer.add(0x38); // tag =7 << 3 | 0
       buffer.addAll(_writeVarint(counter));
     }
 
     return buffer;
   }
 
-  //  Varint 工具方法 
+  // Varint 工具方法
 
   static int _readVarint(Uint8List data, int offset) {
     int value = 0;

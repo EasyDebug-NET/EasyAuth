@@ -825,7 +825,7 @@ class BackupService {
   /// 返回值：远程是否有备份文件
   Future<bool> hasRemoteBackup(Setting setting) async {
     if (setting.backupSetting.type == BackupType.webdav) {
-      /// 使用 WebDAV 工具类获取文件列表
+      // 使用 WebDAV 工具类获取文件列表
       final listUrl = buildWebDavDirUrl(
         setting.backupSetting.webDavConfig.url,
         setting.backupSetting.webDavConfig.backupDir,
@@ -836,14 +836,14 @@ class BackupService {
         setting.backupSetting.webDavConfig.password,
       );
 
-      /// 过滤备份文件
+      // 过滤备份文件
       final backupFiles = files
           .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
           .toList();
 
       return backupFiles.isNotEmpty;
     } else if (setting.backupSetting.type == BackupType.s3) {
-      /// 使用 S3 工具类获取文件列表
+      // 使用 S3 工具类获取文件列表
       final objects = await S3Utils.listObjects(
         setting.backupSetting.s3Config.endpoint,
         setting.backupSetting.s3Config.bucketName,
@@ -852,7 +852,7 @@ class BackupService {
         region: setting.backupSetting.s3Config.region,
       );
 
-      /// 过滤备份文件（与 restoreBackup 保持一致，按 backupDir 过滤）
+      // 过滤备份文件（与 restoreBackup 保持一致，按 backupDir 过滤）
       final backupDir = setting.backupSetting.s3Config.backupDir;
       final backupFiles = objects.where((f) {
         if (backupDir.isNotEmpty && !f.startsWith(backupDir)) {
@@ -872,7 +872,7 @@ class BackupService {
   /// [setting] 应用设置
   Future<void> deleteRemoteBackup(Setting setting) async {
     if (setting.backupSetting.type == BackupType.webdav) {
-      /// 使用 WebDAV 工具类获取文件列表
+      // 使用 WebDAV 工具类获取文件列表
       final listUrl = buildWebDavDirUrl(
         setting.backupSetting.webDavConfig.url,
         setting.backupSetting.webDavConfig.backupDir,
@@ -883,14 +883,14 @@ class BackupService {
         setting.backupSetting.webDavConfig.password,
       );
 
-      /// 过滤并排序备份文件
+      // 过滤并排序备份文件
       final backupFiles =
           files
               .where((f) => f.startsWith('backup_') && f.endsWith('.zip'))
               .toList()
             ..sort((a, b) => b.compareTo(a));
 
-      /// 删除所有备份文件
+      // 删除所有备份文件
       for (final file in backupFiles) {
         final url = buildWebDavFileUrl(
           setting.backupSetting.webDavConfig.url,
@@ -904,7 +904,7 @@ class BackupService {
         );
       }
     } else if (setting.backupSetting.type == BackupType.s3) {
-      /// 使用 S3 工具类获取文件列表
+      // 使用 S3 工具类获取文件列表
       final objects = await S3Utils.listObjects(
         setting.backupSetting.s3Config.endpoint,
         setting.backupSetting.s3Config.bucketName,
@@ -913,7 +913,7 @@ class BackupService {
         region: setting.backupSetting.s3Config.region,
       );
 
-      /// 过滤备份文件（S3 返回完整 key，需按 backupDir 前缀过滤）
+      // 过滤备份文件（S3 返回完整 key，需按 backupDir 前缀过滤）
       final backupDir = setting.backupSetting.s3Config.backupDir;
       final backupFiles = objects
           .where((f) {
@@ -927,7 +927,7 @@ class BackupService {
           })
           .toList();
 
-      /// 删除所有备份文件
+      // 删除所有备份文件
       for (final file in backupFiles) {
         await S3Utils.deleteObject(
           setting.backupSetting.s3Config.endpoint,

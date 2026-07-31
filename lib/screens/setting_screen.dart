@@ -53,25 +53,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _initialized = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 接收来自 home_screen 的参数
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initFromArguments();
+      if (!_initialized) {
+        _initialized = true;
+        _loadConfig();
+        _checkBiometricAvailability();
+      }
+    });
+  }
+
+  /// 接收来自 home_screen 的路由参数
+  void _initFromArguments() {
     final arguments =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (arguments != null) {
       _fromCloudIcon = arguments['fromCloudIcon'] ?? false;
     }
-    // 首次初始化放在这里，此时 widget 已在树中，可以访问 Localizations
-    if (!_initialized) {
-      _initialized = true;
-      _loadConfig();
-      _checkBiometricAvailability();
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
   }
 
   /// 检查生物识别可用性
@@ -530,7 +530,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       activeTrackColor: Theme.of(
                                         context,
                                       ).colorScheme.primary,
-                                      inactiveTrackColor: Colors.grey[300],
+                                      inactiveTrackColor: Theme.of(context).brightness == Brightness.light
+                                        ? Colors.grey[300]
+                                        : Colors.grey[700],
                                       trackOutlineColor:
                                           WidgetStateProperty.resolveWith((
                                             states,
@@ -607,7 +609,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       activeTrackColor: Theme.of(
                                         context,
                                       ).colorScheme.primary,
-                                      inactiveTrackColor: Colors.grey[300],
+                                      inactiveTrackColor: Theme.of(context).brightness == Brightness.light
+                                        ? Colors.grey[300]
+                                        : Colors.grey[700],
                                       trackOutlineColor:
                                           WidgetStateProperty.resolveWith((
                                             states,
@@ -1476,7 +1480,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                   const SizedBox(height: 16),
                 ],
 
-                // WebDAV
+                // WebDAV 配置
                 if (_config.backupSetting.type == BackupType.webdav) ...[
                   TextFormField(
                     controller: _webDavUrlController,
@@ -1592,7 +1596,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                     ),
                   ),
                 ] else if (_config.backupSetting.type == BackupType.s3) ...[
-                  // S3 config
+                  // S3 配置
                   TextFormField(
                     controller: _s3EndpointController,
                     decoration: InputDecoration(
@@ -1783,12 +1787,9 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
                         onPressed: () async {
                           if (_formKey.currentState?.validate() ?? false) {
                             final password = _backupPasswordController.text;
-                            if (!_hasBackupPassword && password.isNotEmpty) {
-                              await BackupService().saveBackupPassword(password);
-                            } else if (!_hasBackupPassword) {
-                              await BackupService().saveBackupPassword('');
-                            }
-                            if (_hasBackupPassword && password.isNotEmpty) {
+                            // 仅在密码字段可见时（首次设置或修改密码）保存新密码；
+                            // 表单校验已保证 password 非空且长度 >= 8
+                            if (!_hasBackupPassword) {
                               await BackupService().saveBackupPassword(password);
                             }
 

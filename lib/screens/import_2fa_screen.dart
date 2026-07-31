@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -40,10 +38,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
     super.dispose();
   }
 
-  /// 处理扫描到的二维码数据
-  ///
-  /// 优先使用 [QrUtils.parseMigrationData] 解析 Protocol Buffers 格式，
-  /// 如果解析结果为空则尝试 JSON 格式兼容解析。
+  /// 处理扫描到的二维码数据，使用 Protobuf 格式解析
   void _processQrCode(String code) {
     final l10n = AppLocalizations.of(context)!;
 
@@ -56,41 +51,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
           _selectedAccounts = [];
         });
       } else {
-        // 兼容其他应用的 JSON 格式
-        try {
-          if (code.startsWith('otpauth-migration://offline?data=')) {
-            final dataPart = code.substring(
-              'otpauth-migration://offline?data='.length,
-            );
-            final cleanedDataPart = dataPart
-                .replaceAll('-', '+')
-                .replaceAll('_', '/');
-            final paddedDataPart = cleanedDataPart.padRight(
-              cleanedDataPart.length + (4 - cleanedDataPart.length % 4) % 4,
-              '=',
-            );
-            final decodedData = base64.decode(paddedDataPart);
-            final jsonData = json.decode(String.fromCharCodes(decodedData));
-            if (jsonData is Map && jsonData.containsKey('otp_parameters')) {
-              final otpParameters = jsonData['otp_parameters'] as List?;
-              if (otpParameters != null) {
-                setState(() {
-                  _importedAccounts = otpParameters
-                      .cast<Map<String, dynamic>>();
-                  _selectedAccounts = [];
-                });
-              } else {
-                _showErrorDialog(l10n.errorQrDataFormat);
-              }
-            } else {
-              _showErrorDialog(l10n.errorQrDataFormat);
-            }
-          } else {
-            _showErrorDialog(l10n.errorInvalidMigrationQr);
-          }
-        } catch (e) {
-          _showErrorDialog(l10n.errorInvalidQrDataFormat);
-        }
+        _showErrorDialog(l10n.errorInvalidMigrationQr);
       }
     } catch (e) {
       _showErrorDialog(e.toString());
