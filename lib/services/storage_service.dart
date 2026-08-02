@@ -5,10 +5,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/two_factor_account.dart';
+import '../utils/exceptions.dart';
 
 const sharedSecureStorage = FlutterSecureStorage();
 
-/// 安全存储服务 - 单例模式
+/// Secure storage service — singleton.
+///
+/// All read/write operations throw [StorageException] on failure so callers
+/// can distinguish errors from valid empty results.
 class StorageService {
   static final StorageService _instance = StorageService._internal();
 
@@ -23,7 +27,10 @@ class StorageService {
   static const String _accountPrefix = 'account_';
   final Uuid _uuid = const Uuid();
 
-  /// 插入动态口令
+  /// Insert a new 2FA account.
+  ///
+  /// Returns the generated account ID.
+  /// Throws [StorageException] on failure.
   Future<String> insertAccount(TwoFactorAccount account) async {
     try {
       final id = _uuid.v4();
@@ -46,7 +53,8 @@ class StorageService {
           ? (jsonDecode(indexJson) as List).cast<String>()
           : <String>[];
 
-      // 先写账户数据，再写索引，避免崩溃留下指向不存在数据的孤立索引
+      // Write account data before updating the index so a crash
+      // won't leave an index entry pointing to missing data.
       await _secureStorage.write(
         key: '$_accountPrefix$id',
         value: jsonEncode(accountWithId.toJson()),
@@ -60,12 +68,18 @@ class StorageService {
 
       return id;
     } catch (e) {
-      debugPrint('插入动态口令失败: $e');
-      return '';
+      throw StorageException(
+        'Failed to insert account',
+        details: e.toString(),
+        originalException: e is Exception ? e : null,
+      );
     }
   }
 
-  /// 获取所有动态口令
+  /// Get all 2FA accounts.
+  ///
+  /// Returns an empty list when there are no accounts.
+  /// Throws [StorageException] on read failure.
   Future<List<TwoFactorAccount>> getAllAccounts() async {
     try {
       final indexJson = await _secureStorage.read(key: _accountsIndexKey);
@@ -83,7 +97,7 @@ class StorageService {
             final accountData = jsonDecode(accountJson);
             accounts.add(TwoFactorAccount.fromJson(accountData));
           } catch (e) {
-            debugPrint('解析动态口令数据失败: $e');
+            debugPrint('Failed to parse account data: $e');
             continue;
           }
         }
@@ -91,12 +105,18 @@ class StorageService {
 
       return accounts;
     } catch (e) {
-      debugPrint('获取动态口令列表失败: $e');
-      return [];
+      throw StorageException(
+        'Failed to load accounts',
+        details: e.toString(),
+        originalException: e is Exception ? e : null,
+      );
     }
   }
 
-  /// 根据 ID 获取动态口令
+  /// Get a single account by ID.
+  ///
+  /// Returns null when the account does not exist.
+  /// Throws [StorageException] on read failure.
   Future<TwoFactorAccount?> getAccountById(String id) async {
     try {
       final accountJson = await _secureStorage.read(key: '$_accountPrefix$id');
@@ -105,19 +125,28 @@ class StorageService {
       final accountData = jsonDecode(accountJson);
       return TwoFactorAccount.fromJson(accountData);
     } catch (e) {
-      debugPrint('获取动态口令失败: $e');
-      return null;
+      throw StorageException(
+        'Failed to load account',
+        details: e.toString(),
+        originalException: e is Exception ? e : null,
+      );
     }
   }
 
-  /// 更新动态口令（只更新 issuer 和 name）
-  Future<int> updateAccount(TwoFactorAccount account) async {
+  /// Update an account (issuer and name only; secret is preserved).
+  ///
+  /// Throws [StorageException] on failure.
+  Future<void> updateAccount(TwoFactorAccount account) async {
     try {
       final indexJson = await _secureStorage.read(key: _accountsIndexKey);
-      if (indexJson == null) return 0;
+      if (indexJson == null) {
+        throw StorageException('No accounts index found');
+      }
 
       final ids = (jsonDecode(indexJson) as List).cast<String>();
-      if (!ids.contains(account.id)) return 0;
+      if (!ids.contains(account.id)) {
+        throw StorageException('Account not found in index');
+      }
 
       final updatedAccount = TwoFactorAccount(
         account.id,
@@ -136,25 +165,34 @@ class StorageService {
         key: '$_accountPrefix${account.id}',
         value: jsonEncode(updatedAccount.toJson()),
       );
-
-      return 1;
     } catch (e) {
-      debugPrint('更新动态口令失败: $e');
-      return 0;
+      if (e is StorageException) rethrow;
+      throw StorageException(
+        'Failed to update account',
+        details: e.toString(),
+        originalException: e is Exception ? e : null,
+      );
     }
   }
 
-  /// 删除动态口令
-  Future<int> deleteAccount(String id) async {
+  /// Delete an account.
+  ///
+  /// Throws [StorageException] on failure.
+  Future<void> deleteAccount(String id) async {
     try {
       final indexJson = await _secureStorage.read(key: _accountsIndexKey);
-      if (indexJson == null) return 0;
+      if (indexJson == null) {
+        throw StorageException('No accounts index found');
+      }
 
       final ids = (jsonDecode(indexJson) as List).cast<String>();
 
-      if (!ids.contains(id)) return 0;
+      if (!ids.contains(id)) {
+        throw StorageException('Account not found in index');
+      }
 
-      // 先从索引移除，再删数据，避免崩溃留下指向不存在数据的索引
+      // Remove from index before deleting data so a crash
+      // won't leave an index entry pointing to missing data.
       ids.remove(id);
       await _secureStorage.write(
         key: _accountsIndexKey,
@@ -162,15 +200,19 @@ class StorageService {
       );
 
       await _secureStorage.delete(key: '$_accountPrefix$id');
-
-      return 1;
     } catch (e) {
-      debugPrint('删除动态口令失败: $e');
-      return 0;
+      if (e is StorageException) rethrow;
+      throw StorageException(
+        'Failed to delete account',
+        details: e.toString(),
+        originalException: e is Exception ? e : null,
+      );
     }
   }
 
-  /// 清空所有动态口令
+  /// Clear all accounts.
+  ///
+  /// Throws [StorageException] on failure.
   Future<void> clearAllAccounts() async {
     try {
       final indexJson = await _secureStorage.read(key: _accountsIndexKey);
@@ -184,21 +226,29 @@ class StorageService {
         await _secureStorage.delete(key: _accountsIndexKey);
       }
     } catch (e) {
-      debugPrint('清空动态口令失败: $e');
+      throw StorageException(
+        'Failed to clear accounts',
+        details: e.toString(),
+        originalException: e is Exception ? e : null,
+      );
     }
   }
 
-  /// 更新动态口令顺序
-  Future<bool> updateAccountOrder(List<String> newOrder) async {
+  /// Update the display order of accounts.
+  ///
+  /// Throws [StorageException] on failure.
+  Future<void> updateAccountOrder(List<String> newOrder) async {
     try {
       await _secureStorage.write(
         key: _accountsIndexKey,
         value: jsonEncode(newOrder),
       );
-      return true;
     } catch (e) {
-      debugPrint('更新动态口令顺序失败: $e');
-      return false;
+      throw StorageException(
+        'Failed to update account order',
+        details: e.toString(),
+        originalException: e is Exception ? e : null,
+      );
     }
   }
 }

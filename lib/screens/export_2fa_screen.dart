@@ -37,16 +37,22 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
 
   /// 从数据库加载所有动态口令，默认全部选中
   Future<void> _loadAccounts() async {
-    final accounts = await _storageService.getAllAccounts();
-    setState(() {
-      _accounts = accounts;
-      _selectedAccounts = List.filled(accounts.length, true);
-    });
+    try {
+      final accounts = await _storageService.getAllAccounts();
+      setState(() {
+        _accounts = accounts;
+        _selectedAccounts = List.filled(accounts.length, true);
+      });
+    } catch (e) {
+      if (mounted) {
+        StyleUtils.errorSnackBar(context, AppLocalizations.of(context).snackLoadFailed(e.toString()));
+      }
+    }
   }
 
   /// 根据选中的动态口令生成迁移二维码数据
   void _generateQrcode() {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     try {
       final selectedAccounts = _accounts.where((account) {
@@ -109,7 +115,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
   /// 构建导出界面：动态口令选择列表 + 导出按钮，或二维码展示
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.exportTitle)),

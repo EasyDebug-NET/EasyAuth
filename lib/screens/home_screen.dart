@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (e) {
       debugPrint('初始化失败: $e');
       if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
+        final l10n = AppLocalizations.of(context);
         StyleUtils.errorSnackBar(context, l10n.snackInitFailed(e.toString()));
       }
     }
@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen>
         _needsAuthentication = true;
       });
 
-      final l10n = AppLocalizations.of(context)!;
+      final l10n = AppLocalizations.of(context);
       bool authenticated = await _securityService.authenticate(
         reason: l10n.authReasonAccess,
       );
@@ -282,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// 构建主页面 UI：AppBar（搜索/排序/云备份）+ 动态口令列表 + FAB 添加按钮
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     // 认证过程中显示加载界面
     if (_needsAuthentication) {
@@ -616,7 +616,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 构建 HOTP 动态口令的 trailing 控件（递增按钮）
   Widget _buildHotpTrailing(TwoFactorAccount account) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return SizedBox(
       width: 48,
@@ -632,6 +632,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 递增 HOTP 计数器并刷新动态口令
   Future<void> _incrementCounter(TwoFactorAccount account) async {
+    final l10n = AppLocalizations.of(context);
     final newCounter = account.counter + 1;
     final updatedAccount = TwoFactorAccount(
       account.id,
@@ -645,8 +646,14 @@ class _HomeScreenState extends State<HomeScreen>
       type: account.type,
       counter: newCounter,
     );
-    await _storageService.updateAccount(updatedAccount);
-    await _loadAccounts();
+    try {
+      await _storageService.updateAccount(updatedAccount);
+      await _loadAccounts();
+    } catch (e) {
+      if (mounted) {
+        StyleUtils.errorSnackBar(context, l10n.snackSaveConfigFailed(e.toString()));
+      }
+    }
   }
 
   /// 更新所有动态口令的动态码和倒计时
@@ -682,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 显示删除动态口令确认对话框
   Future<bool> _showDeleteConfirmDialog(TwoFactorAccount account) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     final result = await showDialog<bool>(
       context: context,
@@ -703,8 +710,14 @@ class _HomeScreenState extends State<HomeScreen>
     );
 
     if (result == true) {
-      await _storageService.deleteAccount(account.id);
-      await _loadAccounts();
+      try {
+        await _storageService.deleteAccount(account.id);
+        await _loadAccounts();
+      } catch (e) {
+        if (mounted) {
+          StyleUtils.errorSnackBar(context, l10n.snackDeleteFailed);
+        }
+      }
     }
 
     return false;
@@ -724,20 +737,19 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// 保存排序顺序
   Future<void> _saveSortOrder() async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     final newOrder = _accounts.map((account) => account.id).toList();
     _filteredAccounts = List.from(_accounts);
-    final success = await _storageService.updateAccountOrder(newOrder);
-    if (success) {
+    try {
+      await _storageService.updateAccountOrder(newOrder);
       setState(() {
         _isSortingMode = false;
       });
       if (!mounted) return;
       StyleUtils.successSnackBar(context, l10n.snackSortSaved);
-      // 重新加载动态口令以更新显示顺序
       await _loadAccounts();
-    } else {
+    } catch (e) {
       if (!mounted) return;
       StyleUtils.errorSnackBar(context, l10n.snackSortSaveFailed);
     }
@@ -835,7 +847,7 @@ class _HomeScreenState extends State<HomeScreen>
         Offset.zero & MediaQuery.of(context).size,
       );
 
-      final l10n = AppLocalizations.of(context)!;
+      final l10n = AppLocalizations.of(context);
 
       showMenu(
         context: context,
@@ -1016,7 +1028,7 @@ class _MenuDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Drawer(
       child: Column(

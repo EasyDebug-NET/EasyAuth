@@ -211,5 +211,8 @@
   "exceptionFormatMissingData": "バックアップファイル形式エラー：データがありません",
   "exceptionDecryptFailed": "バックアップデータの復号に失敗しました。バックアップパスワードが正しいか確認してください。",
 
-  "versionLabel": "バージョン {version}"
+  "versionLabel": "{version}",
+
+  "privacyDisclaimer": "プライバシーポリシーと免責事項",
+  "thirdPartySoftwareLicenses": "サードパーティソフトウェアとライセンス"
 }

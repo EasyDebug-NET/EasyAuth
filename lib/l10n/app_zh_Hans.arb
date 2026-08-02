@@ -211,5 +211,8 @@
   "exceptionFormatMissingData": "备份文件格式错误：缺少数据",
   "exceptionDecryptFailed": "恢复数据解密失败，请确认备份密码是否正确。",
 
-  "versionLabel": "版本 {version}"
+  "versionLabel": "{version}",
+
+  "privacyDisclaimer": "隐私政策与免责声明",
+  "thirdPartySoftwareLicenses": "第三方软件与许可证"
 }

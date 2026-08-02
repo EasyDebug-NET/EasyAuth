@@ -83,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// 加载配置
   Future<void> _loadConfig() async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     try {
       final setting = await _backupService.loadConfig();
@@ -109,7 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// 保存配置
   Future<void> _saveConfig() async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     try {
       await _backupService.saveConfig(_setting);
@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// 更新截屏锁状态
   Future<void> _updateScreenshotLock(bool enabled) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     try {
       if (enabled) {
@@ -153,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// 处理应用锁开关变化
   Future<void> _handleAppLockToggle(bool value) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     if (value) {
       if (!_isBiometricAvailable) {
@@ -205,7 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// 获取备份配置状态文本
   String _getBackupConfigStatusText() {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     if (_setting.backupSetting.type == BackupType.off) {
       return l10n.statusNotConfigured;
     }
@@ -234,7 +234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _performBackup() async {
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     if (_setting.backupSetting.type == BackupType.off) {
       StyleUtils.normalSnackBar(context, l10n.snackSelectBackupTypeFirst);
@@ -282,7 +282,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _restoreBackup() async {
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     if (_setting.backupSetting.type == BackupType.off) {
       StyleUtils.normalSnackBar(context, l10n.snackSelectBackupTypeFirst);
@@ -356,7 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _manageRemoteBackup() async {
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     if (_setting.backupSetting.type == BackupType.off) {
       StyleUtils.normalSnackBar(context, l10n.snackSelectBackupTypeFirst);
@@ -377,7 +377,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     if (_isLoadingConfig) {
       return Scaffold(
@@ -664,8 +664,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       locale: Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       label: '繁體中文',
     ),
-    (locale: Locale('ja'), label: '日本語'),
     (locale: Locale('ko'), label: '한국어'),
+    (locale: Locale('ja'), label: '日本語'),
   ];
 
   /// 构建语言选择区域（下拉选择样式，与其他 section 统一）
@@ -715,7 +715,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   child: Text(
-                    AppLocalizations.of(ctx)!.sectionLanguage,
+                    AppLocalizations.of(ctx).sectionLanguage,
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -756,10 +756,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -827,7 +827,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
       _isLoading = true;
     });
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     try {
       final backupService = BackupService();
@@ -938,7 +938,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
   Future<void> _deleteSelected() async {
     if (_selectedFiles.isEmpty) return;
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     final result = await showDialog<bool>(
       context: context,
@@ -1024,7 +1024,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
   }
 
   Future<void> _restoreFile(String fileName) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     final result = await showDialog<bool>(
       context: context,
@@ -1079,7 +1079,7 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1279,7 +1279,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   }
 
   Future<void> _launchUrl(String url) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final uri = Uri.parse(url);
     try {
       final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -1307,7 +1307,7 @@ class _BackupConfigDialogState extends State<_BackupConfigDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return AnimatedPadding(
       padding: EdgeInsets.only(

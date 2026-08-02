@@ -40,7 +40,7 @@ class _AboutScreenState extends State<AboutScreen> {
   }
 
   Future<void> _launchUrl(BuildContext context, String url) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final uri = Uri.parse(url);
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -56,14 +56,14 @@ class _AboutScreenState extends State<AboutScreen> {
     }
   }
 
-  Widget _buildLinkButton(BuildContext context, String text, String url) {
-    return TextButton(
-      onPressed: () => _launchUrl(context, url),
+  Widget _buildLinkText(BuildContext context, String text, String url) {
+    return GestureDetector(
+      onTap: () => _launchUrl(context, url),
       child: Text(
         text,
         style: TextStyle(
+          fontSize: 13,
           color: Theme.of(context).colorScheme.primary,
-          decoration: TextDecoration.underline,
         ),
       ),
     );
@@ -71,56 +71,64 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.aboutTitle), centerTitle: true),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset('assets/icon/icon.png', fit: BoxFit.cover),
+                    ),
+                  ),
+                  StyleUtils.largeSpacing,
+                  Text('EasyAuth', style: StyleUtils.titleTextStyle(context)),
+                  StyleUtils.smallSpacing,
+                  _isLoading
+                      ? const CircularProgressIndicator()
+                      : Text(
+                          l10n.versionLabel(_packageInfo?.version ?? l10n.statusUnknownVersion),
+                          style: StyleUtils.subtitleTextStyle(context),
+                        ),
+                  StyleUtils.mediumSpacing,
+                  const Text(
+                    '软件著作权登记号：2026SR0762825',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.asset('assets/icon/icon.png', fit: BoxFit.cover),
-              ),
             ),
-            StyleUtils.largeSpacing,
-            Text('EasyAuth', style: StyleUtils.titleTextStyle(context)),
-            StyleUtils.smallSpacing,
-            _isLoading
-                ? const CircularProgressIndicator()
-                : Text(
-                    l10n.versionLabel(_packageInfo?.version ?? l10n.statusUnknownVersion),
-                    style: StyleUtils.subtitleTextStyle(context),
-                  ),
-            const SizedBox(height: 8),
-            const Text(
-              '软件著作权登记号：2026SR0762825',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 80),
-            Text(
-              l10n.copyrightNotice,
-              style: StyleUtils.subtitleTextStyle(context),
-            ),
-            const SizedBox(height: 24),
-            _buildLinkButton(context, l10n.privacyDisclaimer, _privacyUrl),
-            _buildLinkButton(context, l10n.thirdPartySoftwareLicenses, _thirdPartyUrl),
-          ],
-        ),
+          ),
+          Text(
+            l10n.copyrightNotice,
+            style: StyleUtils.subtitleTextStyle(context),
+          ),
+          const SizedBox(height: 12),
+          _buildLinkText(context, l10n.privacyDisclaimer, _privacyUrl),
+          const SizedBox(height: 4),
+          _buildLinkText(context, l10n.thirdPartySoftwareLicenses, _thirdPartyUrl),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }

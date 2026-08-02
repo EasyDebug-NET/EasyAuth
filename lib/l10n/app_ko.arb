@@ -211,5 +211,8 @@
   "exceptionFormatMissingData": "백업 파일 형식 오류: 데이터 없음",
   "exceptionDecryptFailed": "백업 데이터 복호화에 실패했습니다. 백업 비밀번호가 올바른지 확인하세요.",
 
-  "versionLabel": "버전 {version}"
+  "versionLabel": "{version}",
+
+  "privacyDisclaimer": "개인정보처리방침 및 면책 조항",
+  "thirdPartySoftwareLicenses": "타사 소프트웨어 및 라이선스"
 }

@@ -68,7 +68,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
         '',
         _issuerController.text.isEmpty ? null : _issuerController.text,
         _nameController.text.isEmpty ? null : _nameController.text,
-        // 转换 secret 为大写，确保 Base32 编码格式正确
+        // Normalise secret to uppercase for correct Base32 decoding.
         _secretController.text.toUpperCase(),
         30,
         'SHA1',
@@ -78,11 +78,16 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
         counter: counter,
       );
 
-      await _storageService.insertAccount(account);
-
-      if (mounted) {
-        Navigator.pop(context, true);
-        StyleUtils.successSnackBar(context, AppLocalizations.of(context)!.snackAddedSuccess);
+      try {
+        await _storageService.insertAccount(account);
+        if (mounted) {
+          Navigator.pop(context, true);
+          StyleUtils.successSnackBar(context, AppLocalizations.of(context).snackAddedSuccess);
+        }
+      } catch (e) {
+        if (mounted) {
+          StyleUtils.errorSnackBar(context, AppLocalizations.of(context).snackSaveConfigFailed(e.toString()));
+        }
       }
     }
   }
@@ -90,7 +95,7 @@ class _AddManual2FaScreenState extends State<AddManual2FaScreen> {
   /// 构建手动输入表单：发行者 + 名称 + 密钥 + 类型（TOTP/HOTP）+ 保存按钮
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.addManualTitle)),

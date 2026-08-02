@@ -142,6 +142,22 @@ class _MyAppState extends State<MyApp> {
                 brightness: Brightness.dark,
               ),
             ),
+            localeResolutionCallback: (locale, supportedLocales) {
+              // Normalize zh without script code: use country code to
+              // determine simplified vs traditional Chinese.
+              if (locale != null && locale.languageCode == 'zh' && locale.scriptCode == null) {
+                if (locale.countryCode == 'TW' ||
+                    locale.countryCode == 'HK' ||
+                    locale.countryCode == 'MO') {
+                  return const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+                }
+                return const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans');
+              }
+              if (locale != null && supportedLocales.contains(locale)) {
+                return locale;
+              }
+              return supportedLocales.first;
+            },
             themeMode: ThemeMode.system,
             debugShowCheckedModeBanner: false,
             navigatorObservers: [routeObserver],

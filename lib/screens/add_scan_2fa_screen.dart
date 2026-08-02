@@ -65,7 +65,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -148,7 +148,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
 
   /// 处理扫描到的 otpauth:// 二维码数据，解析并存入数据库
   Future<void> _processScannedData(String data) async {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     try {
       if (!data.startsWith('otpauth://')) {
@@ -209,7 +209,7 @@ class _AddScan2FaScreenState extends State<AddScan2FaScreen>
   void _showErrorDialog(String title, String message) {
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     showDialog(
       context: context,

@@ -618,7 +618,7 @@
   "exceptionDecryptFailed": "Failed to decrypt backup data. Please verify the backup password is correct.",
   "@exceptionDecryptFailed": { "description": "Exception: decrypt failed" },
 
-  "versionLabel": "Version {version}",
+  "versionLabel": "{version}",
   "@versionLabel": {
     "description": "Version label on about screen",
     "placeholders": {

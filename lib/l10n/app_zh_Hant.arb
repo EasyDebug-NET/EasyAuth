@@ -211,5 +211,8 @@
   "exceptionFormatMissingData": "備份檔案格式錯誤：缺少資料",
   "exceptionDecryptFailed": "還原資料解密失敗，請確認備份密碼是否正確。",
 
-  "versionLabel": "版本 {version}"
+  "versionLabel": "{version}",
+
+  "privacyDisclaimer": "隱私政策與免責聲明",
+  "thirdPartySoftwareLicenses": "第三方軟體與授權許可"
 }

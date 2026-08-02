@@ -5,26 +5,22 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../services/storage_service.dart';
 
-/// 语言管理 Provider
+/// Locale provider.
 ///
-/// 管理应用的当前语言设置，支持：
-/// - 首次启动时根据系统语言自动选择
-/// - 手动切换语言并持久化保存
-/// - 通过 ChangeNotifier 通知 UI 刷新
+/// On first launch the system language is detected and saved to settings.
+/// The user can override it manually at any time. On subsequent launches
+/// the saved language is always used.
 class LocaleProvider extends ChangeNotifier {
-  /// 存储键
-  static const String _storageKey = 'language_code';
+  static const String _languageCodeKey = 'language_code';
 
-  /// 安全存储
   final FlutterSecureStorage _secureStorage = sharedSecureStorage;
 
-  /// 当前语言
   Locale _currentLocale = const Locale('en');
 
-  /// 获取当前语言
+  /// Current locale.
   Locale get currentLocale => _currentLocale;
 
-  /// 支持的语言列表
+  /// Supported locales.
   static const List<Locale> supportedLocales = [
     Locale('en'),
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
@@ -33,7 +29,7 @@ class LocaleProvider extends ChangeNotifier {
     Locale('ko'),
   ];
 
-  /// 获取指定语言的原生名称（始终以该语言自身显示）
+  /// Native display name for a locale (always in that locale's own language).
   static String getLocaleNativeName(Locale locale) {
     switch (locale.languageCode) {
       case 'zh':
@@ -47,39 +43,41 @@ class LocaleProvider extends ChangeNotifier {
     }
   }
 
-  /// 检查两个 Locale 是否代表相同的语言
+  /// Check whether two locales represent the same language.
   static bool localeEquals(Locale a, Locale b) {
-    return a.languageCode == b.languageCode &&
-        a.scriptCode == b.scriptCode;
+    return a.languageCode == b.languageCode && a.scriptCode == b.scriptCode;
   }
 
-  /// 加载已保存的语言设置，如果没有则检测系统语言
+  /// Load locale on startup.
   ///
-  /// 首次启动时根据系统语言自动选择：
-  /// - 繁体中文：脚本码为 Hant 或国家/地区为 TW/HK/MO
-  /// - 简体中文：其他 zh 变体
-  /// - 英语：非中文语言
+  /// If a language was previously saved use it; otherwise detect the system
+  /// language, save it, and use it.
   Future<void> loadLocale() async {
-    final saved = await _secureStorage.read(key: _storageKey);
+    final saved = await _secureStorage.read(key: _languageCodeKey);
     if (saved != null && saved.isNotEmpty) {
       _currentLocale = _parseLocale(saved);
     } else {
       _currentLocale = _detectSystemLocale();
-      // 首次启动时保存检测结果
-      await _saveLocale(_currentLocale);
+      await _secureStorage.write(
+        key: _languageCodeKey,
+        value: _localeToString(_currentLocale),
+      );
     }
     notifyListeners();
   }
 
-  /// 切换语言
+  /// Manually set the locale (persisted immediately).
   Future<void> setLocale(Locale locale) async {
     if (localeEquals(_currentLocale, locale)) return;
     _currentLocale = locale;
-    await _saveLocale(locale);
+    await _secureStorage.write(
+      key: _languageCodeKey,
+      value: _localeToString(locale),
+    );
     notifyListeners();
   }
 
-  /// 解析保存的语言字符串为 Locale
+  /// Parse a stored language tag into a Locale.
   Locale _parseLocale(String tag) {
     switch (tag) {
       case 'zh-Hans':
@@ -98,7 +96,7 @@ class LocaleProvider extends ChangeNotifier {
     }
   }
 
-  /// 将 Locale 转换为存储字符串
+  /// Convert a Locale to a storage string.
   String _localeToString(Locale locale) {
     if (locale.languageCode == 'zh') {
       if (locale.scriptCode == 'Hant') return 'zh-Hant';
@@ -108,21 +106,11 @@ class LocaleProvider extends ChangeNotifier {
     return locale.languageCode;
   }
 
-  /// 保存语言设置
-  Future<void> _saveLocale(Locale locale) async {
-    await _secureStorage.write(
-      key: _storageKey,
-      value: _localeToString(locale),
-    );
-  }
-
-  /// 检测系统语言
+  /// Detect the best locale from system preferences.
   Locale _detectSystemLocale() {
     final systemLocale = PlatformDispatcher.instance.locale;
 
-    // 检查系统语言是否为中文
     if (systemLocale.languageCode == 'zh') {
-      // 检查是否为繁体中文
       final scriptCode = systemLocale.scriptCode;
       final countryCode = systemLocale.countryCode;
 
@@ -136,9 +124,8 @@ class LocaleProvider extends ChangeNotifier {
         );
       }
 
-      // 遍历所有系统首选语言，查找繁体变体
-      final systemLocales = PlatformDispatcher.instance.locales;
-      for (final locale in systemLocales) {
+      // Also check all preferred locales for a Traditional variant.
+      for (final locale in PlatformDispatcher.instance.locales) {
         if (locale.languageCode == 'zh') {
           if (locale.scriptCode == 'Hant' ||
               locale.countryCode == 'TW' ||
@@ -152,14 +139,13 @@ class LocaleProvider extends ChangeNotifier {
         }
       }
 
-      // 默认为简体中文
       return const Locale.fromSubtags(
         languageCode: 'zh',
         scriptCode: 'Hans',
       );
     }
 
-    // 非中文，默认英语
+    // Non-Chinese system — default to English.
     return const Locale('en');
   }
 }

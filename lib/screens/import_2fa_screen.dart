@@ -40,7 +40,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
 
   /// 处理扫描到的二维码数据，使用 Protobuf 格式解析
   void _processQrCode(String code) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     try {
       final accounts = QrUtils.parseMigrationData(code);
@@ -60,7 +60,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
 
   /// 显示错误提示对话框，允许重新扫描
   void _showErrorDialog(String message) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     showDialog(
       context: context,
@@ -92,7 +92,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
   Future<void> _importAccounts() async {
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     try {
       if (_selectedAccounts.isEmpty) {
@@ -157,7 +157,7 @@ class _Import2FaScreenState extends State<Import2FaScreen> {
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: Colors.black,

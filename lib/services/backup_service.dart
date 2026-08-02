@@ -33,19 +33,54 @@ class BackupService {
   static const String _backupPasswordKey = 'backup_password';
   static const int _saltLength = 16;
   static const int _nonceLength = 12;
+  static const int _pbkdf2Iterations = 600000;
 
-  /// 生成加密安全的随机字节
+  // Storage keys for settings (shared with saveConfig / loadConfig).
+  static const String _keyBackupType = 'backup_type';
+  static const String _keyWebDavUrl = 'webdav_url';
+  static const String _keyWebDavBackupDir = 'webdav_backup_dir';
+  static const String _keyWebDavUsername = 'webdav_username';
+  static const String _keyWebDavPassword = 'webdav_password';
+  static const String _keyS3Endpoint = 's3_endpoint';
+  static const String _keyS3AccessKeyId = 's3_access_key_id';
+  static const String _keyS3SecretAccessKey = 's3_secret_access_key';
+  static const String _keyS3BucketName = 's3_bucket_name';
+  static const String _keyS3BackupDir = 's3_backup_dir';
+  static const String _keyS3Region = 's3_region';
+  static const String _keyAppLockEnabled = 'app_lock_enabled';
+  static const String _keyBackupHistoryCount = 'backup_history_count';
+  static const String _keyScreenshotLockEnabled = 'screenshot_lock_enabled';
+
+  /// Generate cryptographically secure random bytes.
   List<int> _randomBytes(int length) {
     final random = Random.secure();
     return List<int>.generate(length, (_) => random.nextInt(256));
   }
 
-  /// 从备份密码派生 AES-256 密钥
+  /// Derive a 256-bit AES key from the backup password using PBKDF2-HMAC-SHA256.
   ///
-  /// SHA-256(password + salt) → 32 字节密钥
+  /// Uses 600,000 iterations as recommended by OWASP for SHA-256.
+  /// Since the derived key length (32 bytes) matches the SHA-256 output size,
+  /// only one PBKDF2 block is needed.
   List<int> _deriveBackupKey(String password, List<int> salt) {
-    final data = Uint8List.fromList([...utf8.encode(password), ...salt]);
-    return sha256.convert(data).bytes;
+    final passwordBytes = utf8.encode(password);
+    final hmac = Hmac(sha256, passwordBytes);
+
+    // U1 = HMAC-SHA256(password, salt || INT_BE(1))
+    final blockIndex = Uint8List(4);
+    blockIndex[3] = 1; // big-endian 1
+    var u = hmac.convert([...salt, ...blockIndex]).bytes;
+    var result = u;
+
+    // U2...Uc with XOR accumulation
+    for (int i = 1; i < _pbkdf2Iterations; i++) {
+      u = hmac.convert(u).bytes;
+      for (int j = 0; j < result.length; j++) {
+        result[j] ^= u[j];
+      }
+    }
+
+    return result;
   }
 
   /// 检查是否已设置备份密码
@@ -433,36 +468,36 @@ class BackupService {
   /// 加载应用设置
   Future<Setting> loadConfig() async {
     try {
-      final typeStr = await _secureStorage.read(key: 'backup_type') ?? 'off';
+      final typeStr = await _secureStorage.read(key: _keyBackupType) ?? 'off';
       final backupType = BackupType.values.firstWhere(
         (e) => e.name == typeStr,
         orElse: () => BackupType.off,
       );
-      final webDavUrl = await _secureStorage.read(key: 'webdav_url') ?? '';
+      final webDavUrl = await _secureStorage.read(key: _keyWebDavUrl) ?? '';
       final webDavBackupDir =
-          await _secureStorage.read(key: 'webdav_backup_dir') ?? '';
+          await _secureStorage.read(key: _keyWebDavBackupDir) ?? '';
       final webDavUsername =
-          await _secureStorage.read(key: 'webdav_username') ?? '';
+          await _secureStorage.read(key: _keyWebDavUsername) ?? '';
       final webDavPassword =
-          await _secureStorage.read(key: 'webdav_password') ?? '';
-      final s3Endpoint = await _secureStorage.read(key: 's3_endpoint') ?? '';
+          await _secureStorage.read(key: _keyWebDavPassword) ?? '';
+      final s3Endpoint = await _secureStorage.read(key: _keyS3Endpoint) ?? '';
       final s3AccessKeyId =
-          await _secureStorage.read(key: 's3_access_key_id') ?? '';
+          await _secureStorage.read(key: _keyS3AccessKeyId) ?? '';
       final s3SecretAccessKey =
-          await _secureStorage.read(key: 's3_secret_access_key') ?? '';
+          await _secureStorage.read(key: _keyS3SecretAccessKey) ?? '';
       final s3BucketName =
-          await _secureStorage.read(key: 's3_bucket_name') ?? '';
-      final s3BackupDir = await _secureStorage.read(key: 's3_backup_dir') ?? '';
-      final s3Region = await _secureStorage.read(key: 's3_region');
+          await _secureStorage.read(key: _keyS3BucketName) ?? '';
+      final s3BackupDir = await _secureStorage.read(key: _keyS3BackupDir) ?? '';
+      final s3Region = await _secureStorage.read(key: _keyS3Region);
       final appLockEnabledStr =
-          await _secureStorage.read(key: 'app_lock_enabled') ?? '0';
+          await _secureStorage.read(key: _keyAppLockEnabled) ?? '0';
       final appLockEnabled =
           appLockEnabledStr == '1' || appLockEnabledStr == 'true';
       final historyCountStr =
-          await _secureStorage.read(key: 'backup_history_count') ?? '10';
+          await _secureStorage.read(key: _keyBackupHistoryCount) ?? '10';
       final historyCount = int.tryParse(historyCountStr) ?? 10;
       final screenshotLockEnabledStr =
-          await _secureStorage.read(key: 'screenshot_lock_enabled') ?? '1';
+          await _secureStorage.read(key: _keyScreenshotLockEnabled) ?? '1';
       final screenshotLockEnabled =
           screenshotLockEnabledStr != '0' && screenshotLockEnabledStr != 'false';
       return Setting(
@@ -510,60 +545,60 @@ class BackupService {
   /// 保存应用设置
   Future<void> saveConfig(Setting setting) async {
     await _secureStorage.write(
-      key: 'backup_type',
+      key: _keyBackupType,
       value: setting.backupSetting.type.name,
     );
     await _secureStorage.write(
-      key: 'webdav_url',
+      key: _keyWebDavUrl,
       value: setting.backupSetting.webDavConfig.url,
     );
     await _secureStorage.write(
-      key: 'webdav_backup_dir',
+      key: _keyWebDavBackupDir,
       value: setting.backupSetting.webDavConfig.backupDir,
     );
     await _secureStorage.write(
-      key: 'webdav_username',
+      key: _keyWebDavUsername,
       value: setting.backupSetting.webDavConfig.username,
     );
     await _secureStorage.write(
-      key: 'webdav_password',
+      key: _keyWebDavPassword,
       value: setting.backupSetting.webDavConfig.password,
     );
     await _secureStorage.write(
-      key: 's3_endpoint',
+      key: _keyS3Endpoint,
       value: setting.backupSetting.s3Config.endpoint,
     );
     await _secureStorage.write(
-      key: 's3_access_key_id',
+      key: _keyS3AccessKeyId,
       value: setting.backupSetting.s3Config.accessKeyId,
     );
     await _secureStorage.write(
-      key: 's3_secret_access_key',
+      key: _keyS3SecretAccessKey,
       value: setting.backupSetting.s3Config.secretAccessKey,
     );
     await _secureStorage.write(
-      key: 's3_bucket_name',
+      key: _keyS3BucketName,
       value: setting.backupSetting.s3Config.bucketName,
     );
     await _secureStorage.write(
-      key: 's3_backup_dir',
+      key: _keyS3BackupDir,
       value: setting.backupSetting.s3Config.backupDir,
     );
     await _secureStorage.write(
-      key: 's3_region',
+      key: _keyS3Region,
       value: setting.backupSetting.s3Config.region,
     );
     await _secureStorage.write(
-      key: 'backup_history_count',
+      key: _keyBackupHistoryCount,
       value: setting.backupSetting.historyCount.toString(),
     );
 
     await _secureStorage.write(
-      key: 'app_lock_enabled',
+      key: _keyAppLockEnabled,
       value: setting.securitySetting.appLockEnabled ? '1' : '0',
     );
     await _secureStorage.write(
-      key: 'screenshot_lock_enabled',
+      key: _keyScreenshotLockEnabled,
       value: setting.securitySetting.screenshotLockEnabled ? '1' : '0',
     );
   }

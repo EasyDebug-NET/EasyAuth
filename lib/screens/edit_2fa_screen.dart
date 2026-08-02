@@ -64,11 +64,16 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
         counter: _account!.counter,
       );
 
-      await _storageService.updateAccount(updatedAccount);
-
-      if (mounted) {
-        Navigator.pop(context, true);
-        StyleUtils.successSnackBar(context, AppLocalizations.of(context)!.snackModifiedSuccess);
+      try {
+        await _storageService.updateAccount(updatedAccount);
+        if (mounted) {
+          Navigator.pop(context, true);
+          StyleUtils.successSnackBar(context, AppLocalizations.of(context).snackModifiedSuccess);
+        }
+      } catch (e) {
+        if (mounted) {
+          StyleUtils.errorSnackBar(context, AppLocalizations.of(context).snackSaveConfigFailed(e.toString()));
+        }
       }
     }
   }
@@ -76,7 +81,7 @@ class _Edit2FaScreenState extends State<Edit2FaScreen> {
   /// 构建编辑表单：发行者名称 + 动态口令名称 + 保存按钮
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.editTitle)),
