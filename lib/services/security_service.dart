@@ -20,6 +20,9 @@ class SecurityService {
   /// 认证状态
   bool _isAuthenticated = false;
 
+  /// 是否正在认证中（防止并发触发多次认证）
+  bool _isAuthenticating = false;
+
   /// 检查设备是否支持生物识别
   Future<bool> isBiometricAvailable() async {
     try {
@@ -54,7 +57,14 @@ class SecurityService {
   /// [timeout] 认证超时时间（秒）
   /// 返回认证是否成功
   Future<bool> authenticate({required String reason, int timeout = 30}) async {
+    // 防止并发认证导致弹出多次指纹对话框
+    if (_isAuthenticating) {
+      debugPrint('认证已在进行中，跳过重复调用');
+      return _isAuthenticated;
+    }
+
     try {
+      _isAuthenticating = true;
       bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
       bool isDeviceSupported = await _localAuth.isDeviceSupported();
       debugPrint(
@@ -83,6 +93,8 @@ class SecurityService {
     } catch (e) {
       debugPrint('认证异常: $e');
       return false;
+    } finally {
+      _isAuthenticating = false;
     }
   }
 

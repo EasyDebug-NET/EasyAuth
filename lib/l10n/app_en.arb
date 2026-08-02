@@ -624,5 +624,10 @@
     "placeholders": {
       "version": { "type": "String" }
     }
-  }
+  },
+
+  "privacyDisclaimer": "Privacy Policy & Disclaimer",
+  "@privacyDisclaimer": { "description": "About: privacy policy and disclaimer link" },
+  "thirdPartySoftwareLicenses": "Third-Party Software & Licenses",
+  "@thirdPartySoftwareLicenses": { "description": "About: third-party software and licenses link" }
 }

@@ -28,7 +28,7 @@
   "sectionSecuritySettings": "安全设置",
   "sectionLanguage": "语言",
 
-  "labelIssuer": "发行者名称",
+  "labelIssuer": "颁发者名称",
   "hintIssuer": "例如：Google",
   "labelAccountName": "动态口令名称",
   "hintAccountName": "例如：user@example.com",

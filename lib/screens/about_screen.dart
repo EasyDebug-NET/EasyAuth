@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../utils/style_utils.dart';
@@ -15,6 +16,9 @@ class AboutScreen extends StatefulWidget {
 class _AboutScreenState extends State<AboutScreen> {
   PackageInfo? _packageInfo;
   bool _isLoading = true;
+
+  static const _privacyUrl = 'https://easyauth.easydebug.net/privacy';
+  static const _thirdPartyUrl = 'https://easyauth.easydebug.net/third-party';
 
   @override
   void initState() {
@@ -35,6 +39,36 @@ class _AboutScreenState extends State<AboutScreen> {
     }
   }
 
+  Future<void> _launchUrl(BuildContext context, String url) async {
+    final l10n = AppLocalizations.of(context)!;
+    final uri = Uri.parse(url);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.errorCannotOpenUrl),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildLinkButton(BuildContext context, String text, String url) {
+    return TextButton(
+      onPressed: () => _launchUrl(context, url),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -52,7 +86,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).shadowColor.withAlpha(25),
+                    color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -72,11 +106,19 @@ class _AboutScreenState extends State<AboutScreen> {
                     l10n.versionLabel(_packageInfo?.version ?? l10n.statusUnknownVersion),
                     style: StyleUtils.subtitleTextStyle(context),
                   ),
-            const SizedBox(height: 96),
+            const SizedBox(height: 8),
+            const Text(
+              '软件著作权登记号：2026SR0762825',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 80),
             Text(
               l10n.copyrightNotice,
               style: StyleUtils.subtitleTextStyle(context),
             ),
+            const SizedBox(height: 24),
+            _buildLinkButton(context, l10n.privacyDisclaimer, _privacyUrl),
+            _buildLinkButton(context, l10n.thirdPartySoftwareLicenses, _thirdPartyUrl),
           ],
         ),
       ),

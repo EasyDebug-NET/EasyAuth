@@ -28,7 +28,7 @@
   "sectionSecuritySettings": "安全設定",
   "sectionLanguage": "語言",
 
-  "labelIssuer": "發行者名稱",
+  "labelIssuer": "頒發者名稱",
   "hintIssuer": "例如：Google",
   "labelAccountName": "動態密碼名稱",
   "hintAccountName": "例如：user@example.com",
