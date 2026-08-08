@@ -67,6 +67,8 @@ dependencies:
   # 应用信息
   package_info_plus: ^10.2.1
   encrypt: ^5.0.3
+  # 图标
+  font_awesome_flutter: ^11.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

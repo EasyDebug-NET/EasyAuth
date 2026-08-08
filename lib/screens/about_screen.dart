@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../utils/style_utils.dart';
 
-/// 关于页面
+/// About page.
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
 
@@ -19,6 +20,8 @@ class _AboutScreenState extends State<AboutScreen> {
 
   static const _privacyUrl = 'https://easyauth.easydebug.net/privacy';
   static const _thirdPartyUrl = 'https://easyauth.easydebug.net/third-party';
+  static const _githubUrl = 'https://github.com/EasyDebug-NET/EasyAuth';
+  static const _giteeUrl = 'https://gitee.com/EasyDebug-NET/EasyAuth';
 
   @override
   void initState() {
@@ -119,6 +122,32 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
             ),
           ),
+          // Repository buttons
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildRepoButton(
+                    icon: FontAwesomeIcons.github,
+                    label: 'GitHub',
+                    url: _githubUrl,
+                    color: const Color(0xFF24292E),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildRepoButton(
+                    icon: FontAwesomeIcons.gitee,
+                    label: 'Gitee',
+                    url: _giteeUrl,
+                    color: const Color(0xFFC71D23),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           Text(
             l10n.copyrightNotice,
             style: StyleUtils.subtitleTextStyle(context),
@@ -129,6 +158,25 @@ class _AboutScreenState extends State<AboutScreen> {
           _buildLinkText(context, l10n.thirdPartySoftwareLicenses, _thirdPartyUrl),
           const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRepoButton({
+    required FaIconData icon,
+    required String label,
+    required String url,
+    required Color color,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: () => _launchUrl(context, url),
+      icon: FaIcon(icon, size: 18),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

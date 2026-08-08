@@ -78,6 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _checkBiometricAvailability() async {
     _isBiometricAvailable = await _securityService.isBiometricAvailable();
     debugPrint('生物识别可用性: $_isBiometricAvailable');
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -166,6 +167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       if (authenticated) {
+        if (!mounted) return;
         setState(() {
           _setting = _setting.copyWith(
             securitySetting: _setting.securitySetting.copyWith(
@@ -184,6 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       if (authenticated) {
+        if (!mounted) return;
         setState(() {
           _setting = _setting.copyWith(
             securitySetting: _setting.securitySetting.copyWith(
@@ -249,6 +252,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _isLoading = true;
     });
+
+    // 让出事件循环，确保 loading 状态先渲染
+    await Future.delayed(const Duration(milliseconds: 50));
 
     try {
       await _backupService.performBackup(_setting);
@@ -322,6 +328,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _isLoading = true;
       });
+
+      // 让出事件循环，确保 loading 状态先渲染
+      await Future.delayed(const Duration(milliseconds: 50));
 
       try {
         await _backupService.restoreBackup(_setting);
@@ -823,10 +832,6 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
   }
 
   Future<void> _loadBackupFiles() async {
-    setState(() {
-      _isLoading = true;
-    });
-
     final l10n = AppLocalizations.of(context);
 
     try {
@@ -899,15 +904,16 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
         return b.dateTime!.compareTo(a.dateTime!);
       });
 
+      if (!mounted) return;
       setState(() {
         _backupFiles = backupFiles;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         StyleUtils.normalSnackBar(context, l10n.snackLoadFailed(e.toString()));
       }
     }
@@ -964,9 +970,13 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
 
     if (result != true) return;
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
+
+    // 让出事件循环，确保 loading 状态先渲染
+    await Future.delayed(const Duration(milliseconds: 50));
 
     String? errorMsg;
     try {
@@ -1011,11 +1021,13 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     } catch (e) {
       errorMsg = e.toString();
     } finally {
-      setState(() {
-        _isLoading = false;
-        _selectedFiles.clear();
-        _selectAll = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _selectedFiles.clear();
+          _selectAll = false;
+        });
+      }
     }
 
     if (errorMsg != null && mounted) {
@@ -1050,9 +1062,13 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
 
     if (result != true) return;
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
+
+    // 让出事件循环，确保 loading 状态先渲染
+    await Future.delayed(const Duration(milliseconds: 50));
 
     String? errorMsg;
     try {
@@ -1066,9 +1082,11 @@ class _RemoteBackupManagerState extends State<_RemoteBackupManager> {
     } catch (e) {
       errorMsg = e.toString();
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
 
     if (errorMsg != null && mounted) {

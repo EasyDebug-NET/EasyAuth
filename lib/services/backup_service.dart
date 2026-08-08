@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:archive/archive.dart';
@@ -62,7 +63,7 @@ class BackupService {
   /// Uses 600,000 iterations as recommended by OWASP for SHA-256.
   /// Since the derived key length (32 bytes) matches the SHA-256 output size,
   /// only one PBKDF2 block is needed.
-  List<int> _deriveBackupKey(String password, List<int> salt) {
+  static List<int> _deriveBackupKey(String password, List<int> salt) {
     final passwordBytes = utf8.encode(password);
     final hmac = Hmac(sha256, passwordBytes);
 
@@ -679,7 +680,7 @@ class BackupService {
     final salt = _randomBytes(_saltLength);
 
     // SHA-256 派生密钥
-    final keyBytes = _deriveBackupKey(password, salt);
+    final keyBytes = await Isolate.run(() => _deriveBackupKey(password, salt));
 
     // AES-256-GCM 加密
     final key = Key(Uint8List.fromList(keyBytes));
@@ -750,7 +751,7 @@ class BackupService {
       final cipherTextWithTag = encryptedBytes.sublist(_nonceLength);
 
       // SHA-256 派生密钥
-      final keyBytes = _deriveBackupKey(password, salt);
+      final keyBytes = await Isolate.run(() => _deriveBackupKey(password, salt));
 
       // AES-256-GCM 解密
       final key = Key(Uint8List.fromList(keyBytes));
@@ -771,12 +772,12 @@ class BackupService {
 
   /// 从迁移数据恢复动态口令
   Future<void> _restoreFromMigrationData(String migrationData) async {
-    // 清空现有动态口令
-    await _storageService.clearAllAccounts();
-
-    // 使用 QrUtils.parseMigrationData 解析迁移数据
+    // 先解析并校验迁移数据，成功后再清空现有数据，避免解析失败导致数据丢失
     // 复用 qr_utils.dart 中的解析方法，确保与二维码解析逻辑一致
     final accounts = QrUtils.parseMigrationData(migrationData);
+
+    // 清空现有动态口令
+    await _storageService.clearAllAccounts();
 
     // 遍历解析出的动态口令数据，添加到数据库
     for (final account in accounts) {

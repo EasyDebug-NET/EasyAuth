@@ -39,6 +39,7 @@ class _Export2FaScreenState extends State<Export2FaScreen> {
   Future<void> _loadAccounts() async {
     try {
       final accounts = await _storageService.getAllAccounts();
+      if (!mounted) return;
       setState(() {
         _accounts = accounts;
         _selectedAccounts = List.filled(accounts.length, true);

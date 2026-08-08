@@ -154,6 +154,7 @@ class _HomeScreenState extends State<HomeScreen>
           }
         });
       } else {
+        if (!mounted) return;
         setState(() {
           _needsAuthentication = false;
         });
@@ -165,6 +166,7 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _updateAccounts() async {
     try {
       final accounts = await _storageService.getAllAccounts();
+      if (!mounted) return;
 
       // 使用 ID 映射对比，正确检测新增/删除/修改
       final oldMap = {for (final a in _accounts) a.id: a};
@@ -731,6 +733,10 @@ class _HomeScreenState extends State<HomeScreen>
     } else {
       setState(() {
         _isSortingMode = true;
+        // 进入排序模式时清空搜索，确保排序作用于完整列表，避免丢失账号
+        _searchController.clear();
+        _searchText = '';
+        _filterAccounts();
       });
     }
   }
@@ -743,10 +749,10 @@ class _HomeScreenState extends State<HomeScreen>
     _filteredAccounts = List.from(_accounts);
     try {
       await _storageService.updateAccountOrder(newOrder);
+      if (!mounted) return;
       setState(() {
         _isSortingMode = false;
       });
-      if (!mounted) return;
       StyleUtils.successSnackBar(context, l10n.snackSortSaved);
       await _loadAccounts();
     } catch (e) {
@@ -878,6 +884,9 @@ class _HomeScreenState extends State<HomeScreen>
             _isUploadIconFilling = true;
           });
 
+          // 让出事件循环，确保 loading 状态先渲染
+          await Future.delayed(const Duration(milliseconds: 50));
+
           try {
             await _backupService.performBackup(_setting!);
             if (mounted) {
@@ -959,6 +968,9 @@ class _HomeScreenState extends State<HomeScreen>
               _isRestoreRunning = true;
               _isDownloadIconFilling = true;
             });
+
+            // 让出事件循环，确保 loading 状态先渲染
+            await Future.delayed(const Duration(milliseconds: 50));
 
             try {
               await _backupService.restoreBackup(_setting!);
