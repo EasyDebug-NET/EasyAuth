@@ -1,39 +1,80 @@
+<div align="center">
+
+<img src="docs/icon.webp" alt="EasyAuth" width="96" />
+
 # EasyAuth
 
-#### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+**开源、离线可用、数据自主的 2FA 身份验证器**
 
-#### 软件架构
-软件架构说明
+[官网](https://easyauth.easydebug.net/) · [GitHub](https://github.com/EasyDebug-NET/EasyAuth) · [Gitee](https://gitee.com/EasyDebug-NET/EasyAuth)
 
+[English](README.en.md) · [繁體中文](README.zh-Hant.md) · [한국어](README.ko.md)
 
-#### 安装教程
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+[![GitHub 下载](https://img.shields.io/badge/GitHub-%E4%B8%8B%E8%BD%BD-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/EasyDebug-NET/EasyAuth/releases/latest)
+[![Gitee 下载](https://img.shields.io/badge/Gitee-%E4%B8%8B%E8%BD%BD-C71D23?style=for-the-badge&logo=gitee&logoColor=white)](https://gitee.com/EasyDebug-NET/EasyAuth/releases/latest)
 
-#### 使用说明
+</div>
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+## 简介
 
-#### 参与贡献
+EasyAuth 是一款开源的本地双因素认证（2FA）应用，支持 WebDAV 与 S3 云端备份（坚果云、七牛云、AWS S3 等），兼顾数据可控与多端同步。
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+## 截图
 
+<p align="center">
+  <img src="docs/screenshot-light.webp" alt="EasyAuth" width="32%" /> <img src="docs/screenshot-dark.webp" alt="EasyAuth" width="32%" />
+</p>
 
-#### 特技
+## 功能特性
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+- **数据本地存储**：2FA 密钥保存在设备加密区域（Android Keystore / iOS Keychain）
+- **加密云备份**：支持 WebDAV 与 S3 兼容存储，AES-256-GCM 端到端加密
+- **兼容 Google Authenticator**：支持 otpauth:// 协议与迁移二维码导入/导出
+- **生物识别保护**：指纹 / 面容解锁，切换后台自动锁定
+- **防截屏**：可开启安全窗口，阻止截图与录屏
+- **多语言**：支持简体中文 / 繁體中文 / English / 한국어 / 日本語
+
+## 技术栈
+
+- **框架**：Flutter / Dart 3
+- **状态管理**：Provider
+- **本地存储**：flutter_secure_storage
+- **加密**：encrypt（AES-256-GCM）、PBKDF2 密钥派生
+- **生物识别**：local_auth
+- **二维码**：mobile_scanner（扫描）、qr（生成）、otpauth-migration protobuf
+- **云备份**：http、xml（WebDAV）、aws_signature_v4（S3）
+
+> 第三方依赖详见：https://easyauth.easydebug.net/third-party
+
+## 构建运行
+
+### 环境要求
+
+- Flutter 3.x（Dart 3.12+）
+
+### 运行
+
+```bash
+flutter pub get
+flutter run
+```
+
+### 打包
+
+```bash
+flutter build apk      # Android
+flutter build ios      # iOS
+flutter build windows  # Windows
+```
+
+## 许可证
+
+本项目采用 [Apache License 2.0](LICENSE) 开源协议。
+
+## 相关链接
+
+- 官网：https://easyauth.easydebug.net/
+- GitHub：https://github.com/EasyDebug-NET/EasyAuth
+- Gitee：https://gitee.com/EasyDebug-NET/EasyAuth

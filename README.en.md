@@ -1,36 +1,80 @@
+<div align="center">
+
+<img src="docs/icon.webp" alt="EasyAuth" width="96" />
+
 # EasyAuth
 
-#### Description
-{**When you're done, you can delete the content in this README and update the file with details for others getting started with your repository**}
+**Open-source 2FA authenticator — works offline, data under your control, safe and reliable**
 
-#### Software Architecture
-Software architecture description
+[Website](https://easyauth.easydebug.net/) · [GitHub](https://github.com/EasyDebug-NET/EasyAuth) · [Gitee](https://gitee.com/EasyDebug-NET/EasyAuth)
 
-#### Installation
+[简体中文](README.md) · [繁體中文](README.zh-Hant.md) · [한국어](README.ko.md)
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-#### Instructions
+[![GitHub Download](https://img.shields.io/badge/GitHub-Download-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/EasyDebug-NET/EasyAuth/releases/latest)
+[![Gitee Download](https://img.shields.io/badge/Gitee-Download-C71D23?style=for-the-badge&logo=gitee&logoColor=white)](https://gitee.com/EasyDebug-NET/EasyAuth/releases/latest)
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+</div>
 
-#### Contribution
+## Introduction
 
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+EasyAuth is an open-source, local two-factor authentication (2FA) app that supports WebDAV and S3 cloud backup (Nutstore, Qiniu Cloud, AWS S3, etc.), balancing data control with multi-device sync.
 
+## Screenshots
 
-#### Gitee Feature
+<p align="center">
+  <img src="docs/screenshot-light.webp" alt="EasyAuth" width="32%" /> <img src="docs/screenshot-dark.webp" alt="EasyAuth" width="32%" />
+</p>
 
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+## Features
+
+- **Data stored locally**: 2FA secrets are kept in the device's encrypted storage (Android Keystore / iOS Keychain)
+- **Encrypted cloud backup**: WebDAV and S3-compatible storage with AES-256-GCM end-to-end encryption
+- **Google Authenticator compatible**: supports the otpauth:// protocol and migration QR import/export
+- **Biometric protection**: fingerprint / face unlock with automatic lock when backgrounded
+- **Screenshot protection**: optionally enable a secure window to block screenshots and screen recording
+- **Multi-language**: supports 简体中文 / 繁體中文 / English / 한국어 / 日本語
+
+## Tech Stack
+
+- **Framework**: Flutter / Dart 3
+- **State management**: Provider
+- **Local storage**: flutter_secure_storage
+- **Encryption**: encrypt (AES-256-GCM), PBKDF2 key derivation
+- **Biometrics**: local_auth
+- **QR code**: mobile_scanner (scanning), qr (generation), otpauth-migration protobuf
+- **Cloud backup**: http, xml (WebDAV), aws_signature_v4 (S3)
+
+> See third-party dependencies: https://easyauth.easydebug.net/third-party
+
+## Build & Run
+
+### Requirements
+
+- Flutter 3.x (Dart 3.12+)
+
+### Run
+
+```bash
+flutter pub get
+flutter run
+```
+
+### Build
+
+```bash
+flutter build apk      # Android
+flutter build ios      # iOS
+flutter build windows  # Windows
+```
+
+## License
+
+This project is licensed under the [Apache License 2.0](LICENSE).
+
+## Links
+
+- Website: https://easyauth.easydebug.net/
+- GitHub: https://github.com/EasyDebug-NET/EasyAuth
+- Gitee: https://gitee.com/EasyDebug-NET/EasyAuth
