@@ -1,0 +1,96 @@
+# EasyAuth bug report form · English (for GitHub).
+# Lives in the default branch, under .github/ISSUE_TEMPLATE/.
+# GitHub only reads .github; Gitee reads .gitee/ISSUE_TEMPLATE first and falls back
+#   to .github, so the Chinese version for Gitee lives in .gitee/ISSUE_TEMPLATE/.
+# Placing this at the repo root or on a non-default branch does nothing.
+# No assignees on purpose: GitHub uses MegawattJ, Gitee uses Megawatt -- a name that
+#   doesn't exist on one side is silently ignored, so it is left empty.
+name: Bug report
+description: The app crashes, a code is wrong, or something behaves unexpectedly.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. **Your valuable ideas and suggestions are what keep me moving forward.**
+
+        > **Please do not paste real 2FA secrets, recovery codes, or screenshots of QR codes.** Issues are public and permanent — anyone can read them, including people with bad intent. If the problem only reproduces with real data, email support@easydebug.net instead.
+
+  - type: input
+    id: app-version
+    attributes:
+      label: EasyAuth version
+      description: Shown on the app's About screen, e.g. 1.0.0.
+      placeholder: "e.g. 1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS
+      description: Phone model + OS version. Some bugs only appear on one OS version.
+      placeholder: "e.g. Pixel 8 / Android 15"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you got instead.
+      placeholder: |
+        Did: ...
+        Expected: ...
+        Got: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: In order. The more specific, the easier it is to pin down.
+      placeholder: |
+        1. Open ...
+        2. Tap ...
+        3. See ...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: Where did you install it from?
+      description: Packages from different channels can differ, which helps rule things out.
+      options:
+        - GitHub Releases
+        - Gitee Releases
+        - GitCode
+        - Other (please explain below)
+    validations:
+      required: false
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: App language
+      description: Which language was the app UI in when the problem occurred?
+      options:
+        - English
+        - 简体中文
+        - 繁體中文
+        - 한국어
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched existing issues and found nothing similar.
+          required: true
+        - label: I have not pasted any real 2FA secret, recovery code, QR code, or personal data.
+          required: true

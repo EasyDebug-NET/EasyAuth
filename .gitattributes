@@ -1,0 +1,8 @@
+# 默认使用 LF 换行符
+* text=auto eol=lf
+# 二进制文件不转换
+*.png binary
+*.jpg binary
+*.zip binary
+# Windows 批处理文件保留 CRLF
+*.bat text eol=crlf

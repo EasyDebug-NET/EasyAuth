@@ -1,0 +1,65 @@
+# EasyAuth 的「功能建议」模板 · 中文版（给 Gitee）。
+# 放仓库**默认分支**的 .gitee/ISSUE_TEMPLATE/ 下。
+# GitHub 侧的英文版见 .github/ISSUE_TEMPLATE/02-feature.yml（两平台模板各自独立，改一份不影响另一份）。
+# Gitee 侧不要放旧式 ISSUE_TEMPLATE*.md 单文件，否则本表单不生效（原因见 01-bug.yml 顶部注释）。
+# 刻意不写 assignees（原因见 01-bug.yml 顶部注释）。
+name: 功能建议
+description: 想要一个新功能，或者觉得某处可以更好用。
+title: "[建议]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        谢谢你来提建议。**你的宝贵意见和建议将是我继续前行的动力。**
+
+        > 请不要在 issue 里粘贴真实的 2FA 密钥、恢复码，或带密钥的二维码截图。
+        > issue 是公开且永久可见的。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题？
+      description: 描述背后的使用场景或困扰，不用先想好方案。
+      placeholder: "我在用 EasyAuth 管理……的时候，经常需要……但现在做不到。"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 你希望它是什么样的？
+      description: 界面上多一个入口、多一种导入方式，或者某个操作步骤能更短。想法粗糙也没关系。
+    validations:
+      required: true
+
+  - type: input
+    id: alternatives
+    attributes:
+      label: 你现在是怎么绕过去的？
+      description: 用别的 App、手动记，或者干脆放弃。这能帮判断这个需求有多必要。
+    validations:
+      required: false
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: App 语言
+      description: 你平时用的是哪种界面语言？（有些建议与文案或本地化有关）
+      options:
+        - 简体中文
+        - 繁體中文
+        - English
+        - 한국어
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: 提交之前
+      options:
+        - label: 我已经搜过已有的 issue，没有找到类似建议。
+          required: true
+        - label: 我没有粘贴任何真实的 2FA 密钥、恢复码、二维码或个人数据。
+          required: true

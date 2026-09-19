@@ -1,0 +1,65 @@
+# EasyAuth feature request form · English (for GitHub).
+# Lives in the default branch, under .github/ISSUE_TEMPLATE/.
+# The Chinese version for Gitee lives in .gitee/ISSUE_TEMPLATE/02-feature.yml
+#   (the two are independent -- editing one does not affect the other).
+# No assignees on purpose (see 01-bug.yml for why).
+name: Feature request
+description: You want a new feature, or somewhere the app could work better.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. **Your valuable ideas and suggestions are what keep me moving forward.**
+
+        > Please do not paste real 2FA secrets, recovery codes, or screenshots of QR codes.
+        > Issues are public and permanent.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation or the annoyance behind it -- no need to design a solution yet.
+      placeholder: "When I use EasyAuth to manage ..., I often need to ... and there's no way to do it."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like it to look like?
+      description: An extra entry point, another way to import, or fewer steps for something. Rough ideas are fine.
+    validations:
+      required: true
+
+  - type: input
+    id: alternatives
+    attributes:
+      label: How do you get by today?
+      description: Another app, doing it by hand, or giving up. This helps gauge how necessary it is.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: App language
+      description: Which UI language do you normally use? (Some requests relate to wording or localisation.)
+      options:
+        - English
+        - 简体中文
+        - 繁體中文
+        - 한국어
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched existing issues and found no similar request.
+          required: true
+        - label: I have not pasted any real 2FA secret, recovery code, QR code, or personal data.
+          required: true
